@@ -37,7 +37,7 @@ SceneN_Summary - Recap key insights
 
 ### Phase 2: Code
 
-Write Manim Community Edition code following these guidelines:
+Write Manim Community Edition code in the current directory or path specified by the user. Follow these guidelines:
 
 #### Critical: Use Manim CE, NOT ManimGL
 
