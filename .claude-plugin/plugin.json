@@ -1,0 +1,21 @@
+{
+  "name": "manim-skill",
+  "version": "1.0.0",
+  "description": "Claude Code Skill for creating mathematical animations using Manim Community Edition. Plan, code, render, and iterate on 3Blue1Brown-style videos.",
+  "author": {
+    "name": "Yusuke Miyashita"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/ymiy/manim-skill",
+  "keywords": [
+    "claude-skill",
+    "claude-code",
+    "manim",
+    "animation",
+    "math",
+    "video",
+    "3blue1brown",
+    "visualization",
+    "model-invoked"
+  ]
+}
