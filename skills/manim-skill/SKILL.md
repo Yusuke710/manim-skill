@@ -7,14 +7,6 @@ description: Create mathematical animations with Manim Community Edition. Genera
 
 Create mathematical animations using Manim Community Edition.
 
-## When to Use
-
-Use this skill when users want to:
-- Create mathematical animations or visualizations
-- Explain concepts with animated graphics (3Blue1Brown style)
-- Render video content programmatically
-- Build educational math/science videos
-
 ## Workflow Overview
 
 ```
@@ -116,65 +108,44 @@ class Scene1_Introduction(Scene):
 
 ### Phase 3: Render
 
-Use the `render_manim.py` script to render scenes:
+Use `manim` CLI directly to render scenes. It supports parallel rendering of multiple scenes in one command.
 
-#### render_manim
-
-Renders Manim scenes in parallel and returns video paths.
+#### Rendering Scenes
 
 ```bash
-python tools/render_manim.py render <script.py> <Scene1> <Scene2> ... --quality <l|m|h> --output-dir <dir>
+manim -q<quality> [--media_dir <output_dir>] <script.py> Scene1 Scene2 Scene3 ...
 ```
 
-**Parameters:**
-- `script`: Path to Python file with Scene classes
-- `scenes`: Scene class names to render (space-separated)
-- `--quality`: `l` (480p15), `m` (720p30), `h` (1080p60) - default: `l`
-- `--output-dir`: Directory for outputs. Defaults to `/tmp/manim-outputs/<uuid>`
+**Quality flags:**
+- `-ql` - Low quality (480p15, fastest for testing. Use this by default for fast iterative rendering)
+- `-qm` - Medium quality (720p30, good balance)
+- `-qh` - High quality (1080p60, for final output)
+- `-qk` - 4K quality (2160p60, production)
 
-**Returns JSON:**
-```json
-{
-  "status": "success|partial|error",
-  "scenes": [
-    {
-      "name": "Scene1_Introduction",
-      "status": "success",
-      "video": "<output_dir>/media/videos/<script>/480p15/Scene1_Introduction.mp4",
-      "output": "manim stderr",
-      "render_time": 5.2
-    }
-  ],
-  "total_render_time": 15.3,
-  "output_dir": "/path/to/output"
-}
+**Output location:**
+Videos are saved to `<media_dir>/videos/<script_name>/<quality>/SceneName.mp4`
+
+Default media_dir is `~/media` or current directory's `media` folder.
+
+**Examples:**
+```bash
+manim -ql --media_dir /path/to/output animation.py Scene1 Scene2
 ```
 
-**Workflow:**
-1. Render ALL scenes with one command
-2. Check the result JSON
-3. If any scene has `"status": "error"`, fix the code and re-render ONLY failed scenes
-4. Iterate until all scenes render successfully
+#### Stitching Videos with ffmpeg
 
-#### stitch_videos
-
-Stitches multiple videos together in order.
+After rendering all scenes, stitch them together using ffmpeg:
 
 ```bash
-python tools/render_manim.py stitch <video1.mp4> <video2.mp4> ... --output-dir <dir>
-```
+# Create a concat list file
+cat > /tmp/concat_list.txt << 'EOF'
+file '/path/to/Scene1_Intro.mp4'
+file '/path/to/Scene2_Main.mp4'
+file '/path/to/Scene3_Conclusion.mp4'
+EOF
 
-**Parameters:**
-- `videos`: Video file paths in order (space-separated)
-- `--output-dir`: Directory for output. Defaults to `/tmp/manim-outputs/<uuid>`
-
-**Returns JSON:**
-```json
-{
-  "status": "success|error",
-  "output": "<output_dir>/stitched_video.mp4",
-  "output_dir": "/path/to/output"
-}
+# Stitch videos
+ffmpeg -f concat -safe 0 -i /tmp/concat_list.txt -c copy output_final.mp4
 ```
 
 ### Phase 4: Iterate
@@ -182,17 +153,11 @@ python tools/render_manim.py stitch <video1.mp4> <video2.mp4> ... --output-dir <
 After rendering:
 
 1. **Check render results** - If any scene failed:
-   - Read the error output
+   - Read the error output from manim
    - Fix the Manim code
-   - Re-render only the failed scenes with the same `--output-dir`
+   - Re-render only the failed scenes
 
-2. **After successful render** - Stitch all scene videos in order:
-   ```bash
-   python tools/render_manim.py stitch \
-     <output_dir>/media/videos/.../Scene1.mp4 \
-     <output_dir>/media/videos/.../Scene2.mp4 \
-     --output-dir <output_dir>
-   ```
+2. **After successful render** - Stitch all scene videos in order using ffmpeg
 
 3. **User feedback loop** - If user provides feedback on the video:
    - Identify which scenes need changes

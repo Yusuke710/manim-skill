@@ -13,10 +13,8 @@ Before using this skill, install the following dependencies:
 brew install brew install cairo pkg-config ffmpeg
 
 # Install Manim Community Edition
-uv add manim
+uv tool install manim
 ```
-
-
 
 ## Installation
 
@@ -37,9 +35,7 @@ manim-skill/                  # Plugin root
 ├── .claude-plugin/           # Plugin metadata
 └── skills/
     └── manim-skill/          # The actual skill
-        ├── SKILL.md
-        └── tools/
-            └── render_manim.py
+        └── SKILL.md
 ```
 
 ## How It Works
@@ -48,37 +44,6 @@ manim-skill/                  # Plugin root
 2. **Code** - Claude writes Manim Community Edition Python code
 3. **Render** - The `render_manim.py` tool renders scenes in parallel
 4. **Iterate** - Claude fixes any render errors and refines based on your feedback
-
-## Rendering Tool
-
-The `render_manim.py` CLI tool provides two commands:
-
-### Render Scenes
-
-```bash
-python render_manim.py render script.py Scene1 Scene2 --quality l
-```
-
-Options:
-- `--quality`: `l` (480p15), `m` (720p30), `h` (1080p60)
-- `--project-id`: UUID for organizing outputs
-
-### Stitch Videos
-
-```bash
-python render_manim.py stitch video1.mp4 video2.mp4 --output final.mp4
-```
-
-Output videos are saved to `/tmp/manim-outputs/<project_id>/`.
-
-## Troubleshooting
-
-**LaTeX not rendering?**
-Add to your script:
-```python
-import os
-os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ.get('PATH', '')
-```
 
 ## License
 
