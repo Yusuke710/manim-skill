@@ -2,18 +2,6 @@
 
 Create mathematical animations using Manim Community Edition.
 
-## Requirements
-
-Install before using this skill:
-
-```bash
-# Install Manim Community Edition
-uv add manim
-
-# Install FFmpeg for video stitching
-brew install ffmpeg
-```
-
 ## When to Use
 
 Use this skill when users want to:
@@ -30,7 +18,7 @@ Plan → Code → Render → Iterate
 
 ### Phase 1: Plan
 
-**If the user has already planned or provided detailed requirements, skip to Phase 2.**
+**If the user has already used plan mode in claude code or provided detailed requirements, skip to Phase 2.**
 
 Before writing any Manim code, plan the video structure:
 
@@ -130,14 +118,14 @@ Use the `render_manim.py` script to render scenes:
 Renders Manim scenes in parallel and returns video paths.
 
 ```bash
-python tools/render_manim.py render <script.py> <Scene1> <Scene2> ... --quality <l|m|h> --project-id <id>
+python tools/render_manim.py render <script.py> <Scene1> <Scene2> ... --quality <l|m|h> --output-dir <dir>
 ```
 
 **Parameters:**
 - `script`: Path to Python file with Scene classes
 - `scenes`: Scene class names to render (space-separated)
 - `--quality`: `l` (480p15), `m` (720p30), `h` (1080p60) - default: `l`
-- `--project-id`: Optional UUID for organizing outputs
+- `--output-dir`: Directory for outputs. Defaults to `/tmp/manim-outputs/<uuid>`
 
 **Returns JSON:**
 ```json
@@ -147,13 +135,13 @@ python tools/render_manim.py render <script.py> <Scene1> <Scene2> ... --quality 
     {
       "name": "Scene1_Introduction",
       "status": "success",
-      "video": "/tmp/manim-outputs/<project_id>/videos/<script>/480p15/Scene1_Introduction.mp4",
+      "video": "<output_dir>/media/videos/<script>/480p15/Scene1_Introduction.mp4",
       "output": "manim stderr",
       "render_time": 5.2
     }
   ],
   "total_render_time": 15.3,
-  "project_id": "uuid-string"
+  "output_dir": "/path/to/output"
 }
 ```
 
@@ -168,20 +156,19 @@ python tools/render_manim.py render <script.py> <Scene1> <Scene2> ... --quality 
 Stitches multiple videos together in order.
 
 ```bash
-python tools/render_manim.py stitch <video1.mp4> <video2.mp4> ... --output <output.mp4> --project-id <id>
+python tools/render_manim.py stitch <video1.mp4> <video2.mp4> ... --output-dir <dir>
 ```
 
 **Parameters:**
 - `videos`: Video file paths in order (space-separated)
-- `--output`: Output filename (default: `stitched.mp4`)
-- `--project-id`: Optional UUID for output location
+- `--output-dir`: Directory for output. Defaults to `/tmp/manim-outputs/<uuid>`
 
 **Returns JSON:**
 ```json
 {
   "status": "success|error",
-  "output": "/tmp/manim-outputs/<project_id>/final.mp4",
-  "project_id": "uuid-string"
+  "output": "<output_dir>/stitched_video.mp4",
+  "output_dir": "/path/to/output"
 }
 ```
 
@@ -192,14 +179,14 @@ After rendering:
 1. **Check render results** - If any scene failed:
    - Read the error output
    - Fix the Manim code
-   - Re-render only the failed scenes with the same `--project-id`
+   - Re-render only the failed scenes with the same `--output-dir`
 
 2. **After successful render** - Stitch all scene videos in order:
    ```bash
    python tools/render_manim.py stitch \
-     /tmp/manim-outputs/<id>/videos/.../Scene1.mp4 \
-     /tmp/manim-outputs/<id>/videos/.../Scene2.mp4 \
-     --output final.mp4 --project-id <id>
+     <output_dir>/media/videos/.../Scene1.mp4 \
+     <output_dir>/media/videos/.../Scene2.mp4 \
+     --output-dir <output_dir>
    ```
 
 3. **User feedback loop** - If user provides feedback on the video:
@@ -207,153 +194,3 @@ After rendering:
    - Modify the code
    - Re-render affected scenes
    - Re-stitch the final video
-
-## Complete Example
-
-```python
-import os
-os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ.get('PATH', '')
-
-from manim import *
-import numpy as np
-
-# Colors
-BACKGROUND = "#0D1117"
-BLUE = "#1E88E5"
-YELLOW = "#FFC107"
-GREEN = "#43A047"
-
-config.background_color = BACKGROUND
-
-class Scene1_Introduction(Scene):
-    def construct(self):
-        # Title
-        title = Text("The Pythagorean Theorem", font_size=48, color=BLUE)
-        subtitle = Text("a² + b² = c²", font_size=36, color=YELLOW)
-        subtitle.next_to(title, DOWN, buff=0.5)
-
-        self.play(Write(title), run_time=1.5)
-        self.play(FadeIn(subtitle), run_time=1)
-        self.wait(2)
-
-        self.play(FadeOut(title), FadeOut(subtitle))
-
-class Scene2_Triangle(Scene):
-    def construct(self):
-        # Right triangle
-        triangle = Polygon(
-            [-2, -1, 0], [2, -1, 0], [-2, 2, 0],
-            stroke_color=BLUE, stroke_width=3
-        )
-
-        # Labels
-        a_label = Tex("a", color=GREEN).next_to(triangle, LEFT)
-        b_label = Tex("b", color=GREEN).next_to(triangle, DOWN)
-        c_label = Tex("c", color=YELLOW).move_to([0.5, 0.8, 0])
-
-        self.play(Create(triangle), run_time=2)
-        self.play(Write(a_label), Write(b_label), Write(c_label))
-        self.wait(2)
-
-        self.play(*[FadeOut(mob) for mob in self.mobjects])
-```
-
-**Render:**
-```bash
-python tools/render_manim.py render pythagorean.py Scene1_Introduction Scene2_Triangle --quality l
-```
-
-**Stitch:**
-```bash
-python tools/render_manim.py stitch \
-  /tmp/manim-outputs/<id>/videos/pythagorean/480p15/Scene1_Introduction.mp4 \
-  /tmp/manim-outputs/<id>/videos/pythagorean/480p15/Scene2_Triangle.mp4 \
-  --output pythagorean_final.mp4 --project-id <id>
-```
-
-## Common Manim CE Patterns
-
-### Text and Math
-
-```python
-# Regular text
-text = Text("Hello World", font_size=48, color=WHITE)
-
-# LaTeX math
-equation = Tex(r"$E = mc^2$", font_size=36, color=YELLOW)
-math = MathTex(r"\int_0^1 x^2 \, dx = \frac{1}{3}")
-
-# Positioning
-text.to_edge(UP)
-equation.next_to(text, DOWN, buff=0.5)
-```
-
-### Shapes
-
-```python
-# Basic shapes
-circle = Circle(radius=1, color=BLUE)
-square = Square(side_length=2, color=GREEN)
-line = Line(start=[-2, 0, 0], end=[2, 0, 0], color=RED)
-dot = Dot(point=[0, 0, 0], color=YELLOW, radius=0.08)
-
-# Polygon
-triangle = Polygon([0, 1, 0], [-1, -1, 0], [1, -1, 0], color=PURPLE)
-```
-
-### Animations
-
-```python
-# Create/Write
-self.play(Create(circle))
-self.play(Write(text))
-
-# Transform
-self.play(Transform(square, circle))
-self.play(ReplacementTransform(old, new))
-
-# Fade
-self.play(FadeIn(obj))
-self.play(FadeOut(obj))
-
-# Move
-self.play(obj.animate.shift(RIGHT * 2))
-self.play(obj.animate.move_to([1, 1, 0]))
-
-# Wait
-self.wait(1)  # 1 second pause
-```
-
-### Groups
-
-```python
-group = VGroup(circle, square, text)
-group.arrange(DOWN, buff=0.5)  # Stack vertically
-group.arrange(RIGHT, buff=1)   # Stack horizontally
-```
-
-## Troubleshooting
-
-### LaTeX Not Rendering
-
-Add at the top of your script:
-```python
-import os
-os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ.get('PATH', '')
-```
-
-### Scene Name Errors
-
-Scene class names must:
-- Start with capital letter
-- Match exactly when passed to render command
-- Be valid Python class names (no spaces, hyphens)
-
-### Video Path Issues
-
-Output videos are at:
-```
-/tmp/manim-outputs/<project_id>/videos/<script_name>/<quality>/<SceneName>.mp4
-```
-
-Quality directories: `480p15`, `720p30`, `1080p60`
