@@ -9,20 +9,24 @@ Claude autonomously generates 3b1b like video following a structured workflow: P
 Before using this skill, install the following dependencies:
 
 ```bash
+# Install System Dependencies
+brew install brew install cairo pkg-config ffmpeg
+
 # Install Manim Community Edition
 uv add manim
-
-# Install FFmpeg for video stitching
-brew install ffmpeg
 ```
+
+
 
 ## Installation
 
+```bash
 # Add this repository as a marketplace
 /plugin marketplace add Yusuke710/manim-skill
 
 # Install the plugin
 /plugin install manim-skill/manim-skill
+```
 
 ### Understanding the Structure
 

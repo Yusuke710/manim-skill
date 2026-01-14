@@ -1,3 +1,8 @@
+---
+name: manim-skill
+description: Create mathematical animations with Manim Community Edition. Generates publication-quality animations for math concepts, graphs, geometric transformations, 3D scenes, and educational visualizations. Use when user wants to animate equations, illustrate proofs, visualize algorithms, create math explainers, or produce 3Blue1Brown-style videos.
+---
+
 # manim
 
 Create mathematical animations using Manim Community Edition.
