@@ -5,7 +5,7 @@ description: Create mathematical animations with Manim Community Edition. Genera
 
 This skill guides creation of distinctive, publication-quality mathematical animations that avoid generic "AI slop" aesthetics. Implement real working Manim code with exceptional attention to timing, composition, and visual storytelling and render it into a video.
 
-The user provides a concept to visualize: theorem or algorithm from paper, blog post, social media post, conversation with ChatGPT etc. They may include context about the audience, style preferences, or specific moments to emphasize.
+The user provides a concept to visualize: theorem or algorithm from various sources such as paper, blog post, social media post or conversation with ChatGPT etc. They may include context about the audience, style preferences, or specific moments to emphasize.
 
 ## Workflow Overview
 
@@ -51,6 +51,12 @@ Before writing any Manim code, plan the video structure:
    - Consider: warm tones for organic, cool for technical, earth tones for natural
    - Use one or two accent colors prominently, not all equally
    - Adjust background slightly for different moods
+
+   **Subtitle styling (if user requested subtitles):**
+   - Choose a font that complements the video's tone (e.g., clean sans-serif for technical, elegant serif for formal)
+   - Match subtitle color to palette—white with subtle shadow works on dark backgrounds
+   - Consider font size for readability (24-28pt typical for 1080p)
+   - Plan styling parameters for the ffmpeg burn-in step: `FontName`, `FontSize`, `PrimaryColour`, `OutlineColour`
 
    **Avoid:**
    - Everything appearing at once (reveal sequentially)
@@ -129,6 +135,19 @@ class Scene1_Introduction(Scene):
 - End scenes with `FadeOut()` for smooth transitions
 - Add `self.wait()` after key moments for viewer comprehension
 
+#### Subtitles (Optional)
+
+**If the user requests subtitles**, add them to your code:
+
+- Use `add_subcaption()` for every key moment
+- Keep bottom 15% clear for subtitles—avoid placing text or key visuals in `DOWN` edge areas
+
+```python
+self.add_subcaption("Introducing our topic", duration=2)
+self.play(Write(title))
+self.play(FadeOut(title), subcaption="Let's begin", subcaption_duration=1)
+```
+
 ### Phase 3: Render
 
 Use `manim` CLI to render scenes. Multiple scenes can be rendered in parallel with one command.
@@ -144,7 +163,7 @@ manim -q<quality> [--media_dir <output_dir>] <script.py> Scene1 Scene2 Scene3 ..
 **Output location:**
 `<media_dir>/videos/<script_name>/<quality>/SceneName.mp4`
 
-Default media_dir is `~/media` or `./media`.
+Default media_dir is `./media`.
 
 **If any scene fails:** Read the error, fix the code, re-render only the failed scenes.
 
@@ -162,6 +181,14 @@ EOF
 
 # Combine into final video (name by theme, e.g., fourier_transform_final.mp4)
 ffmpeg -y -f concat -safe 0 -i /tmp/concat_list.txt -c copy <theme>_final.mp4
+```
+
+#### Burn in subtitles (optional)
+
+If you used `add_subcaption()`, burn the `.srt` file into the final video:
+
+```bash
+ffmpeg -i <theme>_final.mp4 -vf "subtitles=<theme>_final.srt:force_style='FontSize=24,FontName=Arial'" <theme>_subtitled.mp4
 ```
 
 ### Phase 4: Iterate on User Feedback
