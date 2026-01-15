@@ -26,18 +26,6 @@ uv tool install manim
 /plugin install manim-skill/manim-skill
 ```
 
-### Understanding the Structure
-
-This repository uses the plugin format with a nested structure:
-
-```
-manim-skill/                  # Plugin root
-├── .claude-plugin/           # Plugin metadata
-└── skills/
-    └── manim-skill/          # The actual skill
-        └── SKILL.md
-```
-
 ## How It Works
 
 1. **Plan** - Claude designs the video structure with scenes
