@@ -134,18 +134,14 @@ manim -ql --media_dir /path/to/output animation.py Scene1 Scene2
 
 #### Stitching Videos with ffmpeg
 
-After rendering all scenes, stitch them together using ffmpeg:
+After rendering all scenes, stitch them together using ffmpeg (single command, no temp file needed):
 
 ```bash
-# Create a concat list file
-cat > /tmp/concat_list.txt << 'EOF'
+ffmpeg -y -f concat -safe 0 -i - -c copy output_final.mp4 << 'EOF'
 file '/path/to/Scene1_Intro.mp4'
 file '/path/to/Scene2_Main.mp4'
 file '/path/to/Scene3_Conclusion.mp4'
 EOF
-
-# Stitch videos
-ffmpeg -f concat -safe 0 -i /tmp/concat_list.txt -c copy output_final.mp4
 ```
 
 ### Phase 4: Iterate
