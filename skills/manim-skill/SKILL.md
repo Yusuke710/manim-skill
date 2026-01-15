@@ -131,58 +131,50 @@ class Scene1_Introduction(Scene):
 
 ### Phase 3: Render
 
-Use `manim` CLI directly to render scenes. It supports parallel rendering of multiple scenes in one command.
-
-#### Rendering Scenes
+Use `manim` CLI to render scenes. Multiple scenes can be rendered in parallel with one command.
 
 ```bash
 manim -q<quality> [--media_dir <output_dir>] <script.py> Scene1 Scene2 Scene3 ...
 ```
 
 **Quality flags:**
-- `-ql` - Low quality (480p15, fastest for testing. Use this by default for fast iterative rendering)
-- `-qh` - High quality (1080p60, for final output. Do not generate with high quality unless the user explicitely asks you)
+- `-ql` - Low quality (480p15, fastest for testing—use by default)
+- `-qh` - High quality (1080p60, only when user explicitly requests)
 
 **Output location:**
-Videos are saved to `<media_dir>/videos/<script_name>/<quality>/SceneName.mp4`
+`<media_dir>/videos/<script_name>/<quality>/SceneName.mp4`
 
-Default media_dir is `~/media` or current directory's `media` folder.
+Default media_dir is `~/media` or `./media`.
 
-**Examples:**
-```bash
-manim -ql --media_dir /path/to/output animation.py Scene1 Scene2
-```
+**If any scene fails:** Read the error, fix the code, re-render only the failed scenes.
 
-#### Stitching Videos with ffmpeg
+#### Stitch scenes with ffmpeg
 
-After rendering all scenes, stitch them together using ffmpeg:
+Once all scenes render successfully, combine them:
 
 ```bash
-# Create concat list file
+# Create concat list
 cat > /tmp/concat_list.txt << 'EOF'
 file '/path/to/Scene1_Intro.mp4'
 file '/path/to/Scene2_Main.mp4'
 file '/path/to/Scene3_Conclusion.mp4'
 EOF
 
-# Stitch videos - name as <theme>_final.mp4 (e.g., fourier_transform_final.mp4)
-# Use the animation's topic/theme for the name unless user specifies otherwise
+# Combine into final video (name by theme, e.g., fourier_transform_final.mp4)
 ffmpeg -y -f concat -safe 0 -i /tmp/concat_list.txt -c copy <theme>_final.mp4
 ```
 
-### Phase 4: Iterate
+### Phase 4: Iterate on User Feedback
 
-After rendering:
+Launch the viewer for user to review and provide feedback:
 
-1. **Check render results** - If any scene failed:
-   - Read the error output from manim
-   - Fix the Manim code
-   - Re-render only the failed scenes
+```bash
+python3 tools/video_viewer.py <theme>_final.mp4 /path/to/Scene1.mp4 /path/to/Scene2.mp4 ...
+```
 
-2. **After successful render** - Stitch all scene videos in order using ffmpeg
-
-3. **User feedback loop** - If user provides feedback on the video:
-   - Identify which scenes need changes
-   - Modify the code
-   - Re-render affected scenes
-   - Re-stitch the final video
+When user provides feedback:
+1. Identify which scenes need changes
+2. Modify the code
+3. Re-render only affected scenes
+4. Re-stitch the final video
+5. Launch viewer again for review
