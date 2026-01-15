@@ -175,305 +175,60 @@ def get_viewer_html() -> str:
     <title>Manim Video Viewer</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: "Roboto", "Arial", sans-serif;
-            background: #0f0f0f;
-            color: #fff;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .container {
-            display: flex;
-            height: 100vh;
-            gap: 24px;
-            padding: 24px;
-        }
-        .video-section {
-            flex: 1;
-            min-width: 0;
-        }
-        .video-wrapper {
-            height: 100%;
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        video {
-            flex: 1;
-            width: 100%;
-            object-fit: contain;
-            cursor: pointer;
-        }
-        .progress-container {
-            position: absolute;
-            bottom: 40px;
-            left: 12px;
-            right: 12px;
-            height: 20px;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-        }
-        .progress-track {
-            width: 100%;
-            height: 3px;
-            background: #0f0f0f;
-            position: relative;
-            transition: height 0.1s;
-            display: flex;
-            gap: 3px;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .progress-container:hover .progress-track {
-            height: 5px;
-        }
-        .chapter-segment {
-            height: 100%;
-            background: rgba(255,255,255,0.3);
-            position: relative;
-            flex-shrink: 0;
-        }
-        .chapter-segment-fill {
-            height: 100%;
-            background: #ff0000;
-            width: 0%;
-        }
-        .progress-dot {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%) scale(0);
-            width: 13px;
-            height: 13px;
-            background: #ff0000;
-            border-radius: 50%;
-            transition: transform 0.1s;
-            z-index: 5;
-            pointer-events: none;
-        }
-        .progress-container:hover .progress-dot,
-        .progress-container.dragging .progress-dot {
-            transform: translateY(-50%) scale(1);
-        }
-        .controls-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-        .control-btn {
-            background: transparent;
-            border: none;
-            color: #fff;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-size: 18px;
-        }
-        .control-btn:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .control-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: #fff;
-        }
-        .time-display {
-            font-size: 13px;
-            color: #fff;
-            margin-left: 4px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .time-display .separator {
-            color: #aaa;
-        }
-        .copy-btn {
-            background: #238636;
-            border: none;
-            color: #fff;
-            padding: 4px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            margin: 0 8px;
-        }
-        .copy-btn:hover {
-            background: #2ea043;
-        }
-        .copy-btn.copied {
-            background: #1f6feb;
-        }
-        .current-scene {
-            font-size: 13px;
-            color: #fff;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 300px;
-        }
-        .spacer {
-            flex: 1;
-        }
-        .speed-wrapper {
-            position: relative;
-        }
-        .speed-btn {
-            background: transparent;
-            border: none;
-            color: #fff;
-            padding: 6px 12px;
-            cursor: pointer;
-            font-size: 13px;
-            border-radius: 2px;
-        }
-        .speed-btn:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .speed-menu {
-            position: absolute;
-            bottom: 100%;
-            right: 0;
-            background: #212121;
-            border-radius: 8px;
-            padding: 8px 0;
-            min-width: 120px;
-            display: none;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-            margin-bottom: 8px;
-        }
-        .speed-menu.open {
-            display: block;
-        }
-        .speed-option {
-            display: flex;
-            align-items: center;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #fff;
-        }
-        .speed-option:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .speed-option.active {
-            color: #fff;
-        }
-        .speed-option.active::before {
-            content: '✓';
-            margin-right: 12px;
-            font-size: 12px;
-        }
-        .speed-option:not(.active)::before {
-            content: '';
-            margin-right: 24px;
-        }
-        .chapters-section {
-            width: 360px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .chapters-header {
-            font-size: 16px;
-            font-weight: 500;
-            padding: 12px 0;
-            border-bottom: 1px solid #3f3f3f;
-            margin-bottom: 12px;
-        }
-        .chapters-list {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .chapters-list::-webkit-scrollbar {
-            width: 8px;
-        }
-        .chapters-list::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .chapters-list::-webkit-scrollbar-thumb {
-            background: #3f3f3f;
-            border-radius: 4px;
-        }
-        .chapter {
-            display: flex;
-            gap: 12px;
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .chapter:hover {
-            background: #272727;
-        }
-        .chapter.active {
-            background: #272727;
-        }
-        .chapter.active .chapter-thumb {
-            border: 2px solid #fff;
-        }
-        .chapter-thumb {
-            width: 120px;
-            height: 68px;
-            background: #272727;
-            border-radius: 8px;
-            object-fit: cover;
-            flex-shrink: 0;
-            border: 2px solid transparent;
-        }
-        .chapter-info {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 4px;
-        }
-        .chapter-name {
-            font-size: 14px;
-            font-weight: 500;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            line-height: 1.4;
-        }
-        .chapter-time {
-            font-size: 12px;
-            color: #aaa;
-        }
-        .shortcuts {
-            font-size: 12px;
-            color: #aaa;
-            padding: 12px 0;
-            border-top: 1px solid #3f3f3f;
-            margin-top: 12px;
-            line-height: 1.8;
-        }
-        .shortcuts kbd {
-            background: #272727;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 11px;
-            margin-right: 4px;
-        }
+        body { font-family: "Roboto", Arial, sans-serif; background: #0f0f0f; color: #fff; height: 100vh; overflow: hidden; }
+        .container { display: flex; height: 100vh; gap: 24px; padding: 24px; }
+        .video-section { flex: 1; min-width: 0; }
+        .video-wrapper { height: 100%; background: #000; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+        video { flex: 1; width: 100%; object-fit: contain; cursor: pointer; }
+
+        /* Progress bar */
+        .progress-bar { position: absolute; bottom: 40px; left: 12px; right: 12px; height: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; }
+        .progress-track { width: 100%; height: 3px; background: #0f0f0f; display: flex; gap: 3px; border-radius: 2px; overflow: hidden; transition: height 0.1s; }
+        .progress-bar:hover .progress-track { height: 5px; }
+        .chapter-segment { height: 100%; background: rgba(255,255,255,0.3); }
+        .chapter-segment-fill { height: 100%; background: #f00; width: 0; }
+        .progress-dot { position: absolute; top: 50%; width: 13px; height: 13px; background: #f00; border-radius: 50%; transform: translateY(-50%) scale(0); transition: transform 0.1s; pointer-events: none; }
+        .progress-bar:hover .progress-dot, .progress-bar.dragging .progress-dot { transform: translateY(-50%) scale(1); }
+
+        /* Controls */
+        .controls { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); position: absolute; bottom: 0; left: 0; right: 0; }
+        .play-btn { background: transparent; border: none; color: #fff; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .play-btn:hover { background: rgba(255,255,255,0.1); }
+        .play-btn svg { width: 24px; height: 24px; fill: #fff; }
+        .time { font-size: 13px; margin-left: 4px; }
+        .time .sep { color: #aaa; margin: 0 4px; }
+        .copy-btn { background: #238636; border: none; color: #fff; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 0 8px; }
+        .copy-btn:hover { background: #2ea043; }
+        .copy-btn.copied { background: #1f6feb; }
+        .scene-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+        .spacer { flex: 1; }
+
+        /* Speed menu */
+        .speed-wrap { position: relative; }
+        .speed-btn { background: transparent; border: none; color: #fff; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+        .speed-btn:hover { background: rgba(255,255,255,0.1); }
+        .speed-menu { position: absolute; bottom: 100%; right: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 120px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); margin-bottom: 8px; }
+        .speed-menu.open { display: block; }
+        .speed-opt { padding: 8px 16px; cursor: pointer; font-size: 14px; }
+        .speed-opt:hover { background: rgba(255,255,255,0.1); }
+        .speed-opt::before { content: ''; display: inline-block; width: 20px; }
+        .speed-opt.active::before { content: '✓'; margin-right: 4px; width: auto; }
+
+        /* Chapters sidebar */
+        .chapters { width: 360px; display: flex; flex-direction: column; overflow: hidden; }
+        .chapters h3 { font-size: 16px; font-weight: 500; padding: 12px 0; border-bottom: 1px solid #3f3f3f; margin-bottom: 12px; }
+        .chapter-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .chapter-list::-webkit-scrollbar { width: 8px; }
+        .chapter-list::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
+        .chapter { display: flex; gap: 12px; padding: 8px; border-radius: 8px; cursor: pointer; }
+        .chapter:hover, .chapter.active { background: #272727; }
+        .chapter.active img { border: 2px solid #fff; }
+        .chapter img { width: 120px; height: 68px; background: #272727; border-radius: 8px; object-fit: cover; border: 2px solid transparent; }
+        .chapter-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+        .chapter-info .name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chapter-info .time { font-size: 12px; color: #aaa; }
+        .shortcuts { font-size: 12px; color: #aaa; padding: 12px 0; border-top: 1px solid #3f3f3f; margin-top: 12px; line-height: 1.8; }
+        .shortcuts kbd { background: #272727; padding: 3px 8px; border-radius: 4px; font-family: inherit; font-size: 11px; margin-right: 4px; }
     </style>
 </head>
 <body>
@@ -481,291 +236,157 @@ def get_viewer_html() -> str:
         <div class="video-section">
             <div class="video-wrapper">
                 <video id="video" src="/video.mp4"></video>
-                <div class="progress-container" id="progress-bar">
-                    <div class="progress-track" id="progress-track"></div>
-                    <div class="progress-dot" id="progress-dot"></div>
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-track" id="progressTrack"></div>
+                    <div class="progress-dot" id="progressDot"></div>
                 </div>
-                <div class="controls-bar">
-                    <button class="control-btn" id="play-pause" title="Play (k)">
-                        <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        <svg id="pause-icon" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                        <svg id="replay-icon" viewBox="0 0 24 24" style="display:none"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                <div class="controls">
+                    <button class="play-btn" id="playBtn">
+                        <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg id="iconReplay" viewBox="0 0 24 24" style="display:none"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                     </button>
-                    <div class="time-display">
-                        <span id="current-time">0:00</span>
-                        <span class="separator">/</span>
-                        <span id="duration">0:00</span>
-                    </div>
-                    <button class="copy-btn" id="copy-btn" title="Copy timestamp (C)">Copy</button>
-                    <div class="current-scene" id="current-scene">-</div>
+                    <div class="time"><span id="curTime">0:00</span><span class="sep">/</span><span id="durTime">0:00</span></div>
+                    <button class="copy-btn" id="copyBtn">Copy</button>
+                    <div class="scene-name" id="sceneName">-</div>
                     <div class="spacer"></div>
-                    <div class="speed-wrapper">
-                        <button class="speed-btn" id="speed-btn">1x</button>
-                        <div class="speed-menu" id="speed-menu">
-                            <div class="speed-option" data-speed="0.25">0.25</div>
-                            <div class="speed-option" data-speed="0.5">0.5</div>
-                            <div class="speed-option" data-speed="0.75">0.75</div>
-                            <div class="speed-option active" data-speed="1">Normal</div>
-                            <div class="speed-option" data-speed="1.25">1.25</div>
-                            <div class="speed-option" data-speed="1.5">1.5</div>
-                            <div class="speed-option" data-speed="1.75">1.75</div>
-                            <div class="speed-option" data-speed="2">2</div>
-                        </div>
+                    <div class="speed-wrap">
+                        <button class="speed-btn" id="speedBtn">1x</button>
+                        <div class="speed-menu" id="speedMenu"></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="chapters-section">
-            <div class="chapters-header">Chapters</div>
-            <div class="chapters-list" id="chapters-list"></div>
-            <div class="shortcuts">
-                <kbd>Space</kbd> Play/Pause
-                <kbd>←</kbd><kbd>→</kbd> 5 sec
-                <kbd>C</kbd> Copy timestamp
-            </div>
+        <div class="chapters">
+            <h3>Chapters</h3>
+            <div class="chapter-list" id="chapterList"></div>
+            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>←</kbd><kbd>→</kbd> 5 sec <kbd>C</kbd> Copy timestamp</div>
         </div>
     </div>
-    <script>
-        const video = document.getElementById('video');
-        const currentTimeEl = document.getElementById('current-time');
-        const durationEl = document.getElementById('duration');
-        const currentSceneEl = document.getElementById('current-scene');
-        const copyBtn = document.getElementById('copy-btn');
-        const chaptersList = document.getElementById('chapters-list');
-        const playPauseBtn = document.getElementById('play-pause');
-        const playIcon = document.getElementById('play-icon');
-        const pauseIcon = document.getElementById('pause-icon');
-        const replayIcon = document.getElementById('replay-icon');
-        const progressBar = document.getElementById('progress-bar');
-        const progressTrack = document.getElementById('progress-track');
-        const progressDot = document.getElementById('progress-dot');
-        const speedBtn = document.getElementById('speed-btn');
-        const speedMenu = document.getElementById('speed-menu');
-        let chapters = [];
-        let isEnded = false;
-        let isDragging = false;
-        const SEEK_STEP = 5;
+<script>
+const $ = id => document.getElementById(id);
+const video = $('video'), progressBar = $('progressBar'), progressTrack = $('progressTrack'), progressDot = $('progressDot');
+const playBtn = $('playBtn'), iconPlay = $('iconPlay'), iconPause = $('iconPause'), iconReplay = $('iconReplay');
+const curTime = $('curTime'), durTime = $('durTime'), sceneName = $('sceneName');
+const copyBtn = $('copyBtn'), speedBtn = $('speedBtn'), speedMenu = $('speedMenu'), chapterList = $('chapterList');
 
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
+let chapters = [], ended = false, dragging = false;
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
-        function formatTimePrecise(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins}:${secs.toFixed(3).padStart(6, '0')}`;
-        }
+const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+const fmtPrecise = s => `${Math.floor(s/60)}:${(s%60).toFixed(3).padStart(6,'0')}`;
+const getChapter = t => chapters.findLast(c => t >= c.start) || chapters[0];
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-        function getCurrentChapter(time) {
-            for (let i = chapters.length - 1; i >= 0; i--) {
-                if (time >= chapters[i].start) return chapters[i];
-            }
-            return chapters[0];
-        }
+function updateUI() {
+    const t = video.currentTime, d = video.duration || 1;
+    curTime.textContent = fmt(t);
+    durTime.textContent = fmt(d);
 
-        function updatePlayButton() {
-            if (isEnded) {
-                playIcon.style.display = 'none';
-                pauseIcon.style.display = 'none';
-                replayIcon.style.display = 'block';
-                playPauseBtn.title = 'Replay (k)';
-            } else if (video.paused) {
-                playIcon.style.display = 'block';
-                pauseIcon.style.display = 'none';
-                replayIcon.style.display = 'none';
-                playPauseBtn.title = 'Play (k)';
-            } else {
-                playIcon.style.display = 'none';
-                pauseIcon.style.display = 'block';
-                replayIcon.style.display = 'none';
-                playPauseBtn.title = 'Pause (k)';
-            }
-        }
+    const ch = getChapter(t);
+    if (ch) {
+        sceneName.textContent = ch.name;
+        document.querySelectorAll('.chapter').forEach((el, i) => el.classList.toggle('active', i === ch.index));
+    }
 
-        function updateUI() {
-            const time = video.currentTime;
-            currentTimeEl.textContent = formatTime(time);
-            if (video.duration) {
-                durationEl.textContent = formatTime(video.duration);
-            }
-            const chapter = getCurrentChapter(time);
-            if (chapter) {
-                currentSceneEl.textContent = chapter.name;
-                document.querySelectorAll('.chapter').forEach((el, i) => {
-                    el.classList.toggle('active', i === chapter.index);
-                });
-            }
-            updatePlayButton();
-            // Update chapter segment fills
-            if (video.duration && chapters.length > 0) {
-                const totalDuration = video.duration;
-                chapters.forEach((ch, i) => {
-                    const segmentEl = document.querySelector(`.chapter-segment[data-index="${i}"] .chapter-segment-fill`);
-                    if (segmentEl) {
-                        const chapterEnd = ch.start + ch.duration;
-                        if (time >= chapterEnd) {
-                            segmentEl.style.width = '100%';
-                        } else if (time > ch.start) {
-                            const progress = (time - ch.start) / ch.duration * 100;
-                            segmentEl.style.width = progress + '%';
-                        } else {
-                            segmentEl.style.width = '0%';
-                        }
-                    }
-                });
-                // Position the dot
-                const percent = time / totalDuration * 100;
-                progressDot.style.left = `calc(${percent}% - 6px)`;
-            }
-        }
+    // Play button icon
+    iconPlay.style.display = iconPause.style.display = iconReplay.style.display = 'none';
+    (ended ? iconReplay : video.paused ? iconPlay : iconPause).style.display = 'block';
 
-        async function loadChapters() {
-            const response = await fetch('/chapters.json');
-            chapters = await response.json();
+    // Progress bar segments
+    chapters.forEach((ch, i) => {
+        const fill = document.querySelector(`.chapter-segment[data-i="${i}"] .chapter-segment-fill`);
+        if (!fill) return;
+        const end = ch.start + ch.duration;
+        fill.style.width = t >= end ? '100%' : t > ch.start ? `${(t - ch.start) / ch.duration * 100}%` : '0';
+    });
+    progressDot.style.left = `calc(${t / d * 100}% - 6px)`;
+}
 
-            // Render chapter list
-            chaptersList.innerHTML = chapters.map((ch, i) => `
-                <div class="chapter" data-index="${i}" data-start="${ch.start}">
-                    <img class="chapter-thumb" src="/thumb_${i}.jpg" alt="${ch.name}">
-                    <div class="chapter-info">
-                        <div class="chapter-name">${ch.name}</div>
-                        <div class="chapter-time">${formatTime(ch.start)}</div>
-                    </div>
-                </div>
-            `).join('');
-            document.querySelectorAll('.chapter').forEach(el => {
-                el.addEventListener('click', () => {
-                    video.currentTime = parseFloat(el.dataset.start);
-                    isEnded = false;
-                    updateUI();
-                });
-            });
+function togglePlay() {
+    if (ended) { video.currentTime = 0; ended = false; video.play(); }
+    else video.paused ? video.play() : video.pause();
+}
 
-            // Render chapter segments on progress bar
-            progressTrack.innerHTML = chapters.map((ch, i) => {
-                return `<div class="chapter-segment" data-index="${i}" style="flex-grow: ${ch.duration}">
-                    <div class="chapter-segment-fill"></div>
-                </div>`;
-            }).join('');
-        }
+function seek(e) {
+    const pct = clamp((e.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth, 0, 1);
+    video.currentTime = pct * video.duration;
+    ended = false;
+    updateUI();
+}
 
-        function copyTimestamp() {
-            const chapter = getCurrentChapter(video.currentTime);
-            const text = `[${formatTimePrecise(video.currentTime)}] ${chapter ? chapter.name : ''}: `;
-            navigator.clipboard.writeText(text);
-            copyBtn.textContent = 'Copied!';
-            copyBtn.classList.add('copied');
-            setTimeout(() => {
-                copyBtn.textContent = 'Copy';
-                copyBtn.classList.remove('copied');
-            }, 1000);
-        }
+async function init() {
+    // Load chapters
+    chapters = await (await fetch('/chapters.json')).json();
+    chapterList.innerHTML = chapters.map((c, i) =>
+        `<div class="chapter" data-i="${i}" data-t="${c.start}"><img src="/thumb_${i}.jpg"><div class="chapter-info"><div class="name">${c.name}</div><div class="time">${fmt(c.start)}</div></div></div>`
+    ).join('');
+    progressTrack.innerHTML = chapters.map((c, i) =>
+        `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`
+    ).join('');
 
-        function togglePlayPause() {
-            if (isEnded) {
-                video.currentTime = 0;
-                isEnded = false;
-                video.play();
-            } else if (video.paused) {
-                video.play();
-            } else {
-                video.pause();
-            }
-        }
+    // Speed menu
+    speedMenu.innerHTML = SPEEDS.map(s =>
+        `<div class="speed-opt${s === 1 ? ' active' : ''}" data-s="${s}">${s === 1 ? 'Normal' : s}</div>`
+    ).join('');
 
-        video.addEventListener('timeupdate', updateUI);
-        video.addEventListener('play', () => { isEnded = false; updateUI(); });
-        video.addEventListener('pause', updateUI);
-        video.addEventListener('ended', () => { isEnded = true; updateUI(); });
-        video.addEventListener('loadedmetadata', () => {
-            durationEl.textContent = formatTime(video.duration);
-        });
-        video.addEventListener('click', togglePlayPause);
-        copyBtn.addEventListener('click', copyTimestamp);
+    // Event listeners
+    video.addEventListener('timeupdate', updateUI);
+    video.addEventListener('play', () => { ended = false; updateUI(); });
+    video.addEventListener('pause', updateUI);
+    video.addEventListener('ended', () => { ended = true; updateUI(); });
+    video.addEventListener('loadedmetadata', () => durTime.textContent = fmt(video.duration));
+    video.addEventListener('click', togglePlay);
+    playBtn.addEventListener('click', togglePlay);
 
-        function seekToPosition(e) {
-            const rect = progressBar.getBoundingClientRect();
-            const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-            video.currentTime = percent * video.duration;
-            isEnded = false;
-            updateUI();
-        }
+    progressBar.addEventListener('mousedown', e => { dragging = true; progressBar.classList.add('dragging'); seek(e); });
+    document.addEventListener('mousemove', e => dragging && seek(e));
+    document.addEventListener('mouseup', () => { if (dragging) { dragging = false; progressBar.classList.remove('dragging'); } });
 
-        progressBar.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            progressBar.classList.add('dragging');
-            seekToPosition(e);
-        });
+    chapterList.addEventListener('click', e => {
+        const ch = e.target.closest('.chapter');
+        if (ch) { video.currentTime = +ch.dataset.t; ended = false; updateUI(); }
+    });
 
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                seekToPosition(e);
-            }
-        });
+    copyBtn.addEventListener('click', () => {
+        const ch = getChapter(video.currentTime);
+        navigator.clipboard.writeText(`[${fmtPrecise(video.currentTime)}] ${ch?.name || ''}: `);
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1000);
+    });
 
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                progressBar.classList.remove('dragging');
-            }
-        });
+    speedBtn.addEventListener('click', e => { e.stopPropagation(); speedMenu.classList.toggle('open'); });
+    document.addEventListener('click', () => speedMenu.classList.remove('open'));
+    speedMenu.addEventListener('click', e => {
+        const opt = e.target.closest('.speed-opt');
+        if (!opt) return;
+        e.stopPropagation();
+        const s = +opt.dataset.s;
+        video.playbackRate = s;
+        speedMenu.querySelectorAll('.speed-opt').forEach(el => el.classList.toggle('active', +el.dataset.s === s));
+        speedBtn.textContent = s === 1 ? '1x' : s + 'x';
+        speedMenu.classList.remove('open');
+    });
 
-        playPauseBtn.addEventListener('click', togglePlayPause);
+    document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT') return;
+        const handlers = {
+            Space: () => { e.preventDefault(); togglePlay(); },
+            KeyK: () => { e.preventDefault(); togglePlay(); },
+            ArrowLeft: () => { e.preventDefault(); video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
+            KeyJ: () => { e.preventDefault(); video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
+            ArrowRight: () => { e.preventDefault(); video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
+            KeyL: () => { e.preventDefault(); video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
+            KeyC: () => copyBtn.click()
+        };
+        handlers[e.code]?.();
+    });
 
-        speedBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            speedMenu.classList.toggle('open');
-        });
-
-        document.addEventListener('click', () => {
-            speedMenu.classList.remove('open');
-        });
-
-        document.querySelectorAll('.speed-option').forEach(opt => {
-            opt.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const speed = parseFloat(opt.dataset.speed);
-                video.playbackRate = speed;
-                document.querySelectorAll('.speed-option').forEach(o => o.classList.remove('active'));
-                opt.classList.add('active');
-                speedBtn.textContent = speed === 1 ? '1x' : speed + 'x';
-                speedMenu.classList.remove('open');
-            });
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT') return;
-            switch(e.code) {
-                case 'Space':
-                case 'KeyK':
-                    e.preventDefault();
-                    togglePlayPause();
-                    break;
-                case 'ArrowLeft':
-                case 'KeyJ':
-                    e.preventDefault();
-                    video.currentTime = Math.max(0, video.currentTime - SEEK_STEP);
-                    isEnded = false;
-                    updateUI();
-                    break;
-                case 'ArrowRight':
-                case 'KeyL':
-                    e.preventDefault();
-                    video.currentTime = Math.min(video.duration, video.currentTime + SEEK_STEP);
-                    isEnded = false;
-                    updateUI();
-                    break;
-                case 'KeyC':
-                    copyTimestamp();
-                    break;
-            }
-        });
-
-        loadChapters();
-        updateUI();
-    </script>
+    updateUI();
+}
+init();
+</script>
 </body>
 </html>'''
 
