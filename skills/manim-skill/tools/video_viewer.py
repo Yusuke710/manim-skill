@@ -147,9 +147,10 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
             with open(file_path, "rb") as f:
                 shutil.copyfileobj(f, self.wfile)
 
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # Browser canceled request (normal during seeking)
         except Exception as e:
             print(f"Error serving file: {e}")
-            self.send_error(500)
 
     def serve_viewer_html(self):
         """Serve the viewer HTML page."""
@@ -199,12 +200,36 @@ def get_viewer_html() -> str:
             border-radius: 8px;
             overflow: hidden;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
         }
         video {
-            max-width: 100%;
-            max-height: 100%;
+            flex: 1;
+            width: 100%;
+            object-fit: contain;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #21262d;
+            cursor: pointer;
+            position: relative;
+        }
+        .progress-bar:hover {
+            height: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #1f6feb;
+            pointer-events: none;
+        }
+        .time-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            font-family: monospace;
+            font-size: 14px;
+            background: #161b22;
         }
         .controls {
             display: flex;
@@ -354,23 +379,22 @@ def get_viewer_html() -> str:
         <div class="video-section">
             <div class="video-wrapper">
                 <video id="video" src="/video.mp4"></video>
-            </div>
-            <div class="controls">
-                <div class="time-display">
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="time-row">
                     <span id="current-time">0:00.000</span>
                     <button class="copy-btn" id="copy-btn" title="Copy timestamp (C)">Copy</button>
                 </div>
+            </div>
+            <div class="controls">
+                <button class="frame-btn" id="play-pause" title="Play/Pause">&#9654;</button>
                 <div class="current-scene" id="current-scene">-</div>
                 <div class="speed-control">
                     <button class="speed-btn" data-speed="0.5">0.5x</button>
                     <button class="speed-btn active" data-speed="1">1x</button>
                     <button class="speed-btn" data-speed="1.5">1.5x</button>
                     <button class="speed-btn" data-speed="2">2x</button>
-                </div>
-                <div class="frame-controls">
-                    <button class="frame-btn" id="prev-frame" title="Previous frame">&#9664;</button>
-                    <button class="frame-btn" id="play-pause" title="Play/Pause">&#9654;</button>
-                    <button class="frame-btn" id="next-frame" title="Next frame">&#9654;</button>
                 </div>
             </div>
         </div>
@@ -391,6 +415,8 @@ def get_viewer_html() -> str:
         const copyBtn = document.getElementById('copy-btn');
         const chaptersList = document.getElementById('chapters-list');
         const playPauseBtn = document.getElementById('play-pause');
+        const progressBar = document.getElementById('progress-bar');
+        const progressFill = document.getElementById('progress-fill');
         let chapters = [];
         const FRAME_STEP = 1/30;
 
@@ -418,6 +444,9 @@ def get_viewer_html() -> str:
                 });
             }
             playPauseBtn.innerHTML = video.paused ? '&#9654;' : '&#10074;&#10074;';
+            if (video.duration) {
+                progressFill.style.width = (time / video.duration * 100) + '%';
+            }
         }
 
         async function loadChapters() {
@@ -457,15 +486,10 @@ def get_viewer_html() -> str:
         video.addEventListener('pause', updateUI);
         copyBtn.addEventListener('click', copyTimestamp);
 
-        document.getElementById('prev-frame').addEventListener('click', () => {
-            video.pause();
-            video.currentTime = Math.max(0, video.currentTime - FRAME_STEP);
-            updateUI();
-        });
-
-        document.getElementById('next-frame').addEventListener('click', () => {
-            video.pause();
-            video.currentTime = Math.min(video.duration, video.currentTime + FRAME_STEP);
+        progressBar.addEventListener('click', (e) => {
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            video.currentTime = percent * video.duration;
             updateUI();
         });
 
