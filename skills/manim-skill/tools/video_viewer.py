@@ -388,7 +388,7 @@ def get_viewer_html() -> str:
                 </div>
             </div>
             <div class="controls">
-                <button class="frame-btn" id="play-pause" title="Play/Pause">&#9654;</button>
+                <button class="frame-btn" id="play-pause" title="Play/Pause (Space)">&#9654;</button>
                 <div class="current-scene" id="current-scene">-</div>
                 <div class="speed-control">
                     <button class="speed-btn" data-speed="0.5">0.5x</button>

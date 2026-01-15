@@ -177,4 +177,4 @@ When user provides feedback:
 2. Modify the code
 3. Re-render only affected scenes
 4. Re-stitch the final video
-5. Launch viewer again for review
+5. Run the viewer command again
