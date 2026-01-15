@@ -58,17 +58,6 @@ Before writing any Manim code, plan the video structure:
    - All objects centered (use spatial hierarchy)
    - No pauses after insights (let concepts land)
 
-Create a scene outline:
-```
-Scene1_Introduction - Set up the problem/concept
-Scene2_StepOne - First key visualization
-Scene3_StepTwo - Build complexity
-...
-SceneN_Summary - Recap key insights
-```
-
-
-
 ### Phase 2: Code
 
 Write Manim Community Edition code in the current directory or path specified by the user. Follow these guidelines:
