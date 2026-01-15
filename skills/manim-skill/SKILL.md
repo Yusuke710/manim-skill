@@ -1,11 +1,11 @@
 ---
 name: manim-skill
-description: Create mathematical animations with Manim Community Edition. Generates publication-quality animations for math concepts, graphs, geometric transformations, 3D scenes, and educational visualizations. Use when user wants to animate equations, illustrate proofs, visualize algorithms, create math explainers, or produce 3Blue1Brown-style videos.
+description: Create mathematical animations with Manim Community Edition. Generates distinctive, production-grade  animations for math concepts, graphs, geometric transformations, 3D scenes, and educational visualizations. Use when user wants to animate equations, illustrate proofs, visualize algorithms, create math explainers, or produce 3Blue1Brown-style videos.
 ---
 
-# manim
+This skill guides creation of distinctive, publication-quality mathematical animations that avoid generic "AI slop" aesthetics. Implement real working Manim code with exceptional attention to timing, composition, and visual storytelling and render it into a video.
 
-Create mathematical animations using Manim Community Edition.
+The user provides a concept to visualize: theorem or algorithm from paper, blog post, social media post, conversation with ChatGPT etc. They may include context about the audience, style preferences, or specific moments to emphasize.
 
 ## Workflow Overview
 
@@ -15,14 +15,48 @@ Plan → Code → Render → Iterate
 
 ### Phase 1: Plan
 
-**If the user has already used plan mode in claude code or provided detailed requirements, skip to Phase 2.**
+**If the user has already used plan mode in claude code or provided detailed requirements, skip to Phase 2. Otherwise, you MUST carefully plan the video structure before writing code.**
 
 Before writing any Manim code, plan the video structure:
 
-1. **Identify the concept** - What are you explaining? What's the key insight?
-2. **Break into chapters/scenes** - Each scene should focus on ONE concept
-3. **Plan visual progression** - How does each scene build on the previous?
-4. **Identify key moments** - What are the "aha" moments to emphasize?
+1. **Break into chapters/scenes** - Each scene should focus on ONE concept
+2. **Plan visual design** - Make intentional choices for unique, engaging visuals:
+
+   **Composition:**
+   - Reveal order: Build complexity gradually (simple → detailed)
+   - Spatial hierarchy: Use positioning to show relationships (above = builds on, side-by-side = comparison, center = focus)
+   - Eye flow: Guide attention left→right, top→bottom, or radially outward
+
+   **Animation timing:**
+   - Reveals (Write, Create): 0.5-1s for simple, 1.5-2s for complex
+   - Transforms (morph, move): 0.3-0.5s for snappy, 1-1.5s for contemplative
+   - Emphasis (highlight, scale): 0.2-0.3s quick pulse
+   - Pauses: 0.5s between related items, 1-2s after key insights
+   - Vary the rhythm to maintain interest
+
+   **Emphasis techniques:**
+   - Color shift: Flash or transition to accent color
+   - Scale pulse: Briefly grow/shrink to draw attention
+   - Isolation: Fade/dim everything except the focus
+   - Zoom: Move + scale for detail examination
+   - Surround: Temporary highlight ring, box, or arrow
+
+   **Memorability check:**
+   - What is the ONE visual viewers will remember?
+   - Where is the "aha moment"? How will you visually punctuate it?
+   - What makes this distinct from a textbook diagram?
+
+   **Color palette:**
+   - The default palette is a starting point—customize for your topic
+   - Consider: warm tones for organic, cool for technical, earth tones for natural
+   - Use one or two accent colors prominently, not all equally
+   - Adjust background slightly for different moods
+
+   **Avoid:**
+   - Everything appearing at once (reveal sequentially)
+   - Same duration for every animation (vary timing)
+   - All objects centered (use spatial hierarchy)
+   - No pauses after insights (let concepts land)
 
 Create a scene outline:
 ```
@@ -33,7 +67,7 @@ Scene3_StepTwo - Build complexity
 SceneN_Summary - Recap key insights
 ```
 
-**If the user did not go through a planning phase, you MUST carefully plan the video structure before writing code.**
+
 
 ### Phase 2: Code
 
@@ -73,7 +107,7 @@ os.environ['PATH'] = '/Library/TeX/texbin:' + os.environ.get('PATH', '')
 from manim import *
 import numpy as np
 
-# 3Blue1Brown-inspired palette
+# example palette
 BACKGROUND = "#0D1117"
 BLUE = "#1E88E5"
 YELLOW = "#FFC107"
