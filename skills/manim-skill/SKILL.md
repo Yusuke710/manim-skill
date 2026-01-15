@@ -141,9 +141,7 @@ manim -q<quality> [--media_dir <output_dir>] <script.py> Scene1 Scene2 Scene3 ..
 
 **Quality flags:**
 - `-ql` - Low quality (480p15, fastest for testing. Use this by default for fast iterative rendering)
-- `-qm` - Medium quality (720p30, good balance)
-- `-qh` - High quality (1080p60, for final output)
-- `-qk` - 4K quality (2160p60, production)
+- `-qh` - High quality (1080p60, for final output. Do not generate with high quality unless the user explicitely asks you)
 
 **Output location:**
 Videos are saved to `<media_dir>/videos/<script_name>/<quality>/SceneName.mp4`
@@ -157,14 +155,19 @@ manim -ql --media_dir /path/to/output animation.py Scene1 Scene2
 
 #### Stitching Videos with ffmpeg
 
-After rendering all scenes, stitch them together using ffmpeg (single command, no temp file needed):
+After rendering all scenes, stitch them together using ffmpeg:
 
 ```bash
-ffmpeg -y -f concat -safe 0 -i - -c copy output_final.mp4 << 'EOF'
+# Create concat list file
+cat > /tmp/concat_list.txt << 'EOF'
 file '/path/to/Scene1_Intro.mp4'
 file '/path/to/Scene2_Main.mp4'
 file '/path/to/Scene3_Conclusion.mp4'
 EOF
+
+# Stitch videos - name as <theme>_final.mp4 (e.g., fourier_transform_final.mp4)
+# Use the animation's topic/theme for the name unless user specifies otherwise
+ffmpeg -y -f concat -safe 0 -i /tmp/concat_list.txt -c copy <theme>_final.mp4
 ```
 
 ### Phase 4: Iterate
