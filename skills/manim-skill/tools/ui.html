@@ -34,16 +34,69 @@
         .scene-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
         .spacer { flex: 1; }
 
+        /* Subtitle overlay */
+        .subtitle-overlay { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; max-width: 80%; z-index: 5; }
+        .subtitle-text { background: rgba(0,0,0,0.75); color: #fff; padding: 6px 16px; border-radius: 4px; display: inline-block; font-family: Arial, sans-serif; line-height: 1.4; }
+        .subtitle-text:empty { display: none; }
+        .subtitle-text.size-small { font-size: 16px; }
+        .subtitle-text.size-medium { font-size: 24px; }
+        .subtitle-text.size-large { font-size: 36px; }
+
+        /* Control buttons */
+        .ctrl-btn { background: transparent; border: none; color: #fff; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; position: relative; }
+        .ctrl-btn:hover { background: rgba(255,255,255,0.1); }
+        .ctrl-btn svg { width: 20px; height: 20px; fill: #fff; }
+        .ctrl-btn.active svg { fill: #fff; }
+        .ctrl-btn.cc-btn.active { background: rgba(255,255,255,0.2); }
+
         /* Speed menu */
-        .speed-wrap { position: relative; }
-        .speed-btn { background: transparent; border: none; color: #fff; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+        .menu-wrap { position: relative; }
+        .speed-btn { background: transparent; border: none; color: #fff; padding: 6px 12px; cursor: pointer; font-size: 13px; border-radius: 4px; }
         .speed-btn:hover { background: rgba(255,255,255,0.1); }
-        .speed-menu { position: absolute; bottom: 100%; right: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 120px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); margin-bottom: 8px; }
-        .speed-menu.open { display: block; }
-        .speed-opt { padding: 8px 16px; cursor: pointer; font-size: 14px; }
-        .speed-opt:hover { background: rgba(255,255,255,0.1); }
-        .speed-opt::before { content: ''; display: inline-block; width: 20px; }
-        .speed-opt.active::before { content: '✓'; margin-right: 4px; width: auto; }
+        .dropdown-menu { position: absolute; bottom: 100%; right: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 140px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); margin-bottom: 8px; z-index: 20; }
+        .dropdown-menu.open { display: block; }
+        .menu-opt { padding: 8px 16px; cursor: pointer; font-size: 14px; display: flex; align-items: center; }
+        .menu-opt:hover { background: rgba(255,255,255,0.1); }
+        .menu-opt .check { width: 20px; margin-right: 4px; opacity: 0; }
+        .menu-opt.active .check { opacity: 1; }
+        .menu-header { padding: 8px 16px; font-size: 12px; color: #aaa; text-transform: uppercase; }
+        .menu-divider { height: 1px; background: #3f3f3f; margin: 8px 0; }
+
+        /* Settings menu with submenu */
+        .settings-menu { min-width: 180px; }
+        .settings-menu .menu-opt { justify-content: space-between; }
+        .settings-menu .menu-opt .arrow { font-size: 12px; color: #aaa; }
+        .submenu { position: absolute; left: -100%; bottom: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 140px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+        .submenu.open { display: block; }
+
+        /* Download modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: #212121; border-radius: 12px; padding: 24px; min-width: 320px; max-width: 400px; }
+        .modal h3 { font-size: 18px; margin-bottom: 16px; }
+        .modal p { font-size: 13px; color: #aaa; margin-bottom: 16px; }
+        .modal-opts { display: flex; flex-direction: column; gap: 8px; }
+        .modal-opt { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #2a2a2a; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+        .modal-opt:hover { border-color: #3f3f3f; }
+        .modal-opt.selected { border-color: #1E88E5; }
+        .modal-opt .info { flex: 1; }
+        .modal-opt .label { font-size: 14px; font-weight: 500; }
+        .modal-opt .desc { font-size: 12px; color: #aaa; margin-top: 2px; }
+        .modal-opt .radio { width: 18px; height: 18px; border: 2px solid #666; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .modal-opt.selected .radio { border-color: #1E88E5; }
+        .modal-opt.selected .radio::after { content: ''; width: 10px; height: 10px; background: #1E88E5; border-radius: 50%; }
+        .modal-btns { display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end; }
+        .modal-btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .modal-btn.cancel { background: #3f3f3f; color: #fff; }
+        .modal-btn.cancel:hover { background: #4f4f4f; }
+        .modal-btn.primary { background: #1E88E5; color: #fff; }
+        .modal-btn.primary:hover { background: #1976D2; }
+        .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal-progress { margin-top: 16px; display: none; }
+        .modal-progress.show { display: block; }
+        .modal-progress .bar { height: 4px; background: #3f3f3f; border-radius: 2px; overflow: hidden; }
+        .modal-progress .fill { height: 100%; background: #1E88E5; width: 0; transition: width 0.3s; }
+        .modal-progress .status { font-size: 12px; color: #aaa; margin-top: 8px; }
 
         /* Chapters sidebar */
         .chapters { width: 360px; display: flex; flex-direction: column; overflow: hidden; }
@@ -67,6 +120,7 @@
         <div class="video-section">
             <div class="video-wrapper">
                 <video id="video" src="/video.mp4"></video>
+                <div class="subtitle-overlay"><div class="subtitle-text size-medium" id="subtitleText"></div></div>
                 <div class="progress-bar" id="progressBar">
                     <div class="progress-track" id="progressTrack"></div>
                     <div class="progress-dot" id="progressDot"></div>
@@ -81,17 +135,71 @@
                     <button class="copy-btn" id="copyBtn">Copy</button>
                     <div class="scene-name" id="sceneName">-</div>
                     <div class="spacer"></div>
-                    <div class="speed-wrap">
-                        <button class="speed-btn" id="speedBtn">1x</button>
-                        <div class="speed-menu" id="speedMenu"></div>
+                    <button class="ctrl-btn cc-btn" id="ccBtn" title="Subtitles">
+                        <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+                    </button>
+                    <div class="menu-wrap">
+                        <button class="ctrl-btn" id="settingsBtn" title="Settings">
+                            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                        </button>
+                        <div class="dropdown-menu settings-menu" id="settingsMenu">
+                            <div class="menu-opt" id="fontSizeOpt">
+                                <span>Subtitle size</span>
+                                <span class="arrow">›</span>
+                            </div>
+                            <div class="submenu" id="fontSizeMenu">
+                                <div class="menu-opt" data-size="small"><span class="check">✓</span>Small</div>
+                                <div class="menu-opt active" data-size="medium"><span class="check">✓</span>Medium</div>
+                                <div class="menu-opt" data-size="large"><span class="check">✓</span>Large</div>
+                            </div>
+                            <div class="menu-divider"></div>
+                            <div class="menu-opt" id="speedOpt">
+                                <span>Playback speed</span>
+                                <span class="arrow">›</span>
+                            </div>
+                            <div class="submenu" id="speedMenu">
+                            </div>
+                        </div>
                     </div>
+                    <button class="ctrl-btn" id="downloadBtn" title="Download">
+                        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    </button>
                 </div>
             </div>
         </div>
         <div class="chapters">
             <h3>Chapters</h3>
             <div class="chapter-list" id="chapterList"></div>
-            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>←</kbd><kbd>→</kbd> 5 sec <kbd>C</kbd> Copy timestamp</div>
+            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>←</kbd><kbd>→</kbd> 5 sec <kbd>C</kbd> Subtitles <kbd>T</kbd> Copy timestamp</div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="downloadModal">
+        <div class="modal">
+            <h3>Download video</h3>
+            <div class="modal-opts">
+                <div class="modal-opt selected" data-quality="low">
+                    <div class="radio"></div>
+                    <div class="info">
+                        <div class="label">Low quality (480p)</div>
+                        <div class="desc">Current preview quality, instant download</div>
+                    </div>
+                </div>
+                <div class="modal-opt" data-quality="high">
+                    <div class="radio"></div>
+                    <div class="info">
+                        <div class="label">High quality (1080p)</div>
+                        <div class="desc">Re-renders video, may take a few minutes</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-progress" id="downloadProgress">
+                <div class="bar"><div class="fill" id="progressFill"></div></div>
+                <div class="status" id="progressStatus">Preparing...</div>
+            </div>
+            <div class="modal-btns">
+                <button class="modal-btn cancel" id="downloadCancel">Cancel</button>
+                <button class="modal-btn primary" id="downloadConfirm">Download</button>
+            </div>
         </div>
     </div>
 <script>
@@ -99,15 +207,41 @@ const $ = id => document.getElementById(id);
 const video = $('video'), progressBar = $('progressBar'), progressTrack = $('progressTrack'), progressDot = $('progressDot');
 const playBtn = $('playBtn'), iconPlay = $('iconPlay'), iconPause = $('iconPause'), iconReplay = $('iconReplay');
 const curTime = $('curTime'), durTime = $('durTime'), sceneName = $('sceneName');
-const copyBtn = $('copyBtn'), speedBtn = $('speedBtn'), speedMenu = $('speedMenu'), chapterList = $('chapterList');
+const copyBtn = $('copyBtn'), chapterList = $('chapterList');
+const ccBtn = $('ccBtn'), settingsBtn = $('settingsBtn'), settingsMenu = $('settingsMenu');
+const fontSizeOpt = $('fontSizeOpt'), fontSizeMenu = $('fontSizeMenu'), speedOpt = $('speedOpt'), speedMenu = $('speedMenu');
+const subtitleText = $('subtitleText'), downloadBtn = $('downloadBtn'), downloadModal = $('downloadModal');
+const downloadCancel = $('downloadCancel'), downloadConfirm = $('downloadConfirm');
+const downloadProgress = $('downloadProgress'), progressFill = $('progressFill'), progressStatus = $('progressStatus');
 
-let chapters = [], ended = false, dragging = false;
-const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+let chapters = [], subtitles = [], ended = false, dragging = false;
+let subtitlesEnabled = false, subtitleSize = 'medium', playbackSpeed = 1;
+let hasSubtitles = false;
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 const fmtPrecise = s => `${Math.floor(s/60)}:${(s%60).toFixed(3).padStart(6,'0')}`;
 const getChapter = t => chapters.findLast(c => t >= c.start) || chapters[0];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// Parse SRT format
+function parseSRT(text) {
+    const blocks = text.trim().split(/\n\n+/);
+    return blocks.map(block => {
+        const lines = block.split('\n');
+        if (lines.length < 3) return null;
+        const timeMatch = lines[1].match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
+        if (!timeMatch) return null;
+        const start = +timeMatch[1]*3600 + +timeMatch[2]*60 + +timeMatch[3] + +timeMatch[4]/1000;
+        const end = +timeMatch[5]*3600 + +timeMatch[6]*60 + +timeMatch[7] + +timeMatch[8]/1000;
+        const text = lines.slice(2).join('\n');
+        return { start, end, text };
+    }).filter(Boolean);
+}
+
+function getCurrentSubtitle(t) {
+    return subtitles.find(s => t >= s.start && t < s.end);
+}
 
 function updateUI() {
     const t = video.currentTime, d = video.duration || 1;
@@ -132,6 +266,14 @@ function updateUI() {
         fill.style.width = t >= end ? '100%' : t > ch.start ? `${(t - ch.start) / ch.duration * 100}%` : '0';
     });
     progressDot.style.left = `calc(${t / d * 100}% - 6px)`;
+
+    // Subtitles
+    if (subtitlesEnabled && hasSubtitles) {
+        const sub = getCurrentSubtitle(t);
+        subtitleText.textContent = sub ? sub.text : '';
+    } else {
+        subtitleText.textContent = '';
+    }
 }
 
 function togglePlay() {
@@ -156,9 +298,22 @@ async function init() {
         `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`
     ).join('');
 
+    // Load subtitles
+    try {
+        const srtRes = await fetch('/subtitles.srt');
+        if (srtRes.ok) {
+            const srtText = await srtRes.text();
+            subtitles = parseSRT(srtText);
+            hasSubtitles = subtitles.length > 0;
+        }
+    } catch (e) { hasSubtitles = false; }
+
+    // Show/hide CC button based on subtitle availability
+    ccBtn.style.display = hasSubtitles ? 'flex' : 'none';
+
     // Speed menu
     speedMenu.innerHTML = SPEEDS.map(s =>
-        `<div class="speed-opt${s === 1 ? ' active' : ''}" data-s="${s}">${s === 1 ? 'Normal' : s}</div>`
+        `<div class="menu-opt${s === 1 ? ' active' : ''}" data-speed="${s}"><span class="check">✓</span>${s === 1 ? 'Normal' : s + 'x'}</div>`
     ).join('');
 
     // Event listeners
@@ -187,21 +342,137 @@ async function init() {
         setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1000);
     });
 
-    speedBtn.addEventListener('click', e => { e.stopPropagation(); speedMenu.classList.toggle('open'); });
-    document.addEventListener('click', () => speedMenu.classList.remove('open'));
-    speedMenu.addEventListener('click', e => {
-        const opt = e.target.closest('.speed-opt');
+    // CC button
+    ccBtn.addEventListener('click', () => {
+        subtitlesEnabled = !subtitlesEnabled;
+        ccBtn.classList.toggle('active', subtitlesEnabled);
+        updateUI();
+    });
+
+    // Settings menu
+    const closeMenus = () => {
+        settingsMenu.classList.remove('open');
+        fontSizeMenu.classList.remove('open');
+        speedMenu.classList.remove('open');
+    };
+    settingsBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const wasOpen = settingsMenu.classList.contains('open');
+        closeMenus();
+        if (!wasOpen) settingsMenu.classList.add('open');
+    });
+    document.addEventListener('click', closeMenus);
+
+    // Font size submenu
+    fontSizeOpt.addEventListener('mouseenter', () => {
+        speedMenu.classList.remove('open');
+        fontSizeMenu.classList.add('open');
+    });
+    fontSizeMenu.addEventListener('click', e => {
+        const opt = e.target.closest('.menu-opt');
         if (!opt) return;
         e.stopPropagation();
-        const s = +opt.dataset.s;
-        video.playbackRate = s;
-        speedMenu.querySelectorAll('.speed-opt').forEach(el => el.classList.toggle('active', +el.dataset.s === s));
-        speedBtn.textContent = s === 1 ? '1x' : s + 'x';
-        speedMenu.classList.remove('open');
+        subtitleSize = opt.dataset.size;
+        subtitleText.className = 'subtitle-text size-' + subtitleSize;
+        fontSizeMenu.querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.size === subtitleSize));
+        closeMenus();
+    });
+
+    // Speed submenu
+    speedOpt.addEventListener('mouseenter', () => {
+        fontSizeMenu.classList.remove('open');
+        speedMenu.classList.add('open');
+    });
+    speedMenu.addEventListener('click', e => {
+        const opt = e.target.closest('.menu-opt');
+        if (!opt) return;
+        e.stopPropagation();
+        playbackSpeed = +opt.dataset.speed;
+        video.playbackRate = playbackSpeed;
+        speedMenu.querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', +el.dataset.speed === playbackSpeed));
+        closeMenus();
+    });
+
+    // Download modal
+    let selectedQuality = 'low';
+    downloadBtn.addEventListener('click', () => {
+        downloadModal.classList.add('open');
+        downloadProgress.classList.remove('show');
+        downloadConfirm.disabled = false;
+    });
+    downloadCancel.addEventListener('click', () => downloadModal.classList.remove('open'));
+    downloadModal.addEventListener('click', e => { if (e.target === downloadModal) downloadModal.classList.remove('open'); });
+
+    document.querySelectorAll('.modal-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.modal-opt').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            selectedQuality = opt.dataset.quality;
+        });
+    });
+
+    downloadConfirm.addEventListener('click', async () => {
+        downloadConfirm.disabled = true;
+        downloadProgress.classList.add('show');
+        progressFill.style.width = '0%';
+        progressStatus.textContent = selectedQuality === 'high' ? 'Re-rendering in high quality...' : 'Preparing download...';
+
+        try {
+            const params = new URLSearchParams({ quality: selectedQuality });
+
+            // Poll for progress if high quality
+            if (selectedQuality === 'high') {
+                progressFill.style.width = '10%';
+                const checkProgress = setInterval(async () => {
+                    try {
+                        const statusRes = await fetch('/download/status');
+                        if (statusRes.ok) {
+                            const status = await statusRes.json();
+                            progressFill.style.width = status.progress + '%';
+                            progressStatus.textContent = status.message;
+                        }
+                    } catch (e) {}
+                }, 1000);
+
+                const res = await fetch('/download?' + params);
+                clearInterval(checkProgress);
+
+                if (!res.ok) throw new Error('Download failed');
+                progressFill.style.width = '100%';
+                progressStatus.textContent = 'Download ready!';
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = res.headers.get('X-Filename') || 'video.mp4';
+                a.click();
+                URL.revokeObjectURL(url);
+            } else {
+                progressFill.style.width = '50%';
+                const res = await fetch('/download?' + params);
+                if (!res.ok) throw new Error('Download failed');
+                progressFill.style.width = '100%';
+                progressStatus.textContent = 'Download ready!';
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = res.headers.get('X-Filename') || 'video.mp4';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            setTimeout(() => downloadModal.classList.remove('open'), 500);
+        } catch (e) {
+            progressStatus.textContent = 'Error: ' + e.message;
+            downloadConfirm.disabled = false;
+        }
     });
 
     document.addEventListener('keydown', e => {
-        if (e.target.tagName === 'INPUT') return;
+        if (e.target.tagName === 'INPUT' || downloadModal.classList.contains('open')) return;
         const handlers = {
             Space: () => { e.preventDefault(); togglePlay(); },
             KeyK: () => { e.preventDefault(); togglePlay(); },
@@ -209,7 +480,8 @@ async function init() {
             KeyJ: () => { e.preventDefault(); video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
             ArrowRight: () => { e.preventDefault(); video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
             KeyL: () => { e.preventDefault(); video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
-            KeyC: () => copyBtn.click()
+            KeyC: () => { if (hasSubtitles) ccBtn.click(); },
+            KeyT: () => copyBtn.click()
         };
         handlers[e.code]?.();
     });

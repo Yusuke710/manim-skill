@@ -3,7 +3,7 @@
 Video Viewer - Local viewer for reviewing Manim videos with chapter navigation.
 
 Usage:
-    python video_viewer.py <final_video.mp4> <scene1.mp4> <scene2.mp4> ...
+    python video_viewer.py <final_video.mp4> <scene1.mp4> <scene2.mp4> ... [--srt <subtitles.srt>] [--script <script.py>]
 """
 
 import argparse
@@ -19,7 +19,7 @@ import tempfile
 import threading
 import webbrowser
 from pathlib import Path
-from urllib.parse import unquote
+from urllib.parse import unquote, parse_qs
 
 
 def get_video_duration(video_path: str) -> float:
@@ -87,14 +87,22 @@ def build_chapters(scene_videos: list[str], temp_dir: str) -> list[dict]:
 class ViewerHandler(http.server.SimpleHTTPRequestHandler):
     """Custom handler for serving viewer files."""
 
-    def __init__(self, *args, video_path: str, chapters: list, temp_dir: str, **kwargs):
+    # Class-level state for download progress
+    download_progress = {"progress": 0, "message": "Preparing..."}
+
+    def __init__(self, *args, video_path: str, chapters: list, temp_dir: str,
+                 srt_path: str = None, script_path: str = None, scene_classes: list = None, **kwargs):
         self.video_path = video_path
         self.chapters = chapters
         self.temp_dir = temp_dir
+        self.srt_path = srt_path
+        self.script_path = script_path
+        self.scene_classes = scene_classes or []
         super().__init__(*args, **kwargs)
 
     def do_GET(self):
-        path = unquote(self.path)
+        path = unquote(self.path.split('?')[0])
+        query = parse_qs(self.path.split('?')[1]) if '?' in self.path else {}
 
         if path == "/" or path == "/index.html":
             self.serve_viewer_html()
@@ -105,14 +113,110 @@ class ViewerHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(self.chapters).encode())
+        elif path == "/subtitles.srt":
+            if self.srt_path and os.path.exists(self.srt_path):
+                self.serve_file(self.srt_path, "text/plain; charset=utf-8")
+            else:
+                self.send_error(404)
         elif path.startswith("/thumb_"):
             thumb_path = os.path.join(self.temp_dir, path[1:])
             if os.path.exists(thumb_path):
                 self.serve_file(thumb_path, "image/jpeg")
             else:
                 self.send_error(404)
+        elif path == "/download":
+            self.handle_download(query)
+        elif path == "/download/status":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(ViewerHandler.download_progress).encode())
         else:
             self.send_error(404)
+
+    def handle_download(self, query):
+        """Handle download request with optional high-quality re-render."""
+        quality = query.get('quality', ['low'])[0]
+
+        try:
+            video_to_serve = self.video_path
+            filename_base = Path(self.video_path).stem
+
+            # High quality: re-render with manim -qh
+            if quality == 'high' and self.script_path and self.scene_classes:
+                ViewerHandler.download_progress = {"progress": 10, "message": "Re-rendering in high quality..."}
+                video_to_serve = self.render_high_quality()
+                if not video_to_serve:
+                    raise Exception("High quality render failed")
+                filename_base = filename_base.replace('_final', '_hq_final')
+
+            ViewerHandler.download_progress = {"progress": 95, "message": "Preparing download..."}
+
+            # Serve the file
+            filename = f"{filename_base}.mp4"
+            self.send_response(200)
+            self.send_header("Content-Type", "video/mp4")
+            self.send_header("Content-Disposition", f"attachment; filename=\"{filename}\"")
+            self.send_header("X-Filename", filename)
+            file_size = os.path.getsize(video_to_serve)
+            self.send_header("Content-Length", str(file_size))
+            self.end_headers()
+
+            with open(video_to_serve, "rb") as f:
+                shutil.copyfileobj(f, self.wfile)
+
+            ViewerHandler.download_progress = {"progress": 100, "message": "Done!"}
+
+        except Exception as e:
+            print(f"Download error: {e}")
+            self.send_error(500, str(e))
+
+    def render_high_quality(self) -> str:
+        """Re-render all scenes in high quality and concatenate."""
+        hq_dir = os.path.join(self.temp_dir, "hq_render")
+        os.makedirs(hq_dir, exist_ok=True)
+
+        script_name = Path(self.script_path).stem
+        scene_videos = []
+
+        # Render each scene
+        total_scenes = len(self.scene_classes)
+        for i, scene_class in enumerate(self.scene_classes):
+            progress = 10 + int((i / total_scenes) * 60)
+            ViewerHandler.download_progress = {"progress": progress, "message": f"Rendering {scene_class}..."}
+
+            cmd = [
+                "manim", "-qh", "--media_dir", hq_dir,
+                self.script_path, scene_class
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Render failed for {scene_class}: {result.stderr}")
+                return None
+
+            # Find the rendered video
+            video_path = os.path.join(hq_dir, "videos", script_name, "1080p60", f"{scene_class}.mp4")
+            if os.path.exists(video_path):
+                scene_videos.append(video_path)
+            else:
+                print(f"Video not found: {video_path}")
+                return None
+
+        # Concatenate scenes
+        ViewerHandler.download_progress = {"progress": 75, "message": "Stitching scenes..."}
+        concat_list = os.path.join(self.temp_dir, "hq_concat.txt")
+        with open(concat_list, "w") as f:
+            for v in scene_videos:
+                f.write(f"file '{v}'\n")
+
+        output_path = os.path.join(self.temp_dir, "hq_final.mp4")
+        cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list, "-c", "copy", output_path]
+        result = subprocess.run(cmd, capture_output=True)
+        if result.returncode != 0:
+            return None
+
+        return output_path
+
 
     def serve_file(self, file_path: str, content_type: str):
         """Serve a file with proper headers for video streaming."""
@@ -171,9 +275,11 @@ def get_viewer_html() -> str:
     return html_path.read_text()
 
 
-def create_handler(video_path: str, chapters: list, temp_dir: str):
+def create_handler(video_path: str, chapters: list, temp_dir: str,
+                   srt_path: str = None, script_path: str = None, scene_classes: list = None):
     def handler(*args, **kwargs):
-        return ViewerHandler(*args, video_path=video_path, chapters=chapters, temp_dir=temp_dir, **kwargs)
+        return ViewerHandler(*args, video_path=video_path, chapters=chapters, temp_dir=temp_dir,
+                             srt_path=srt_path, script_path=script_path, scene_classes=scene_classes, **kwargs)
     return handler
 
 
@@ -195,6 +301,8 @@ def main():
     parser.add_argument("final_video", help="Path to final stitched video")
     parser.add_argument("scenes", nargs="+", help="Paths to scene videos in order")
     parser.add_argument("--port", type=int, default=0, help="Port (default: auto)")
+    parser.add_argument("--srt", help="Path to SRT subtitle file")
+    parser.add_argument("--script", help="Path to Manim script (for high-quality re-render)")
     args = parser.parse_args()
 
     if not os.path.exists(args.final_video):
@@ -213,11 +321,23 @@ def main():
         chapters = build_chapters(args.scenes, temp_dir)
         print(f"Found {len(chapters)} chapters")
 
-        handler = create_handler(os.path.abspath(args.final_video), chapters, temp_dir)
+        # Extract scene class names from scene video filenames
+        scene_classes = [extract_scene_name(s) for s in args.scenes if os.path.exists(s)]
+
+        handler = create_handler(
+            os.path.abspath(args.final_video),
+            chapters,
+            temp_dir,
+            srt_path=os.path.abspath(args.srt) if args.srt else None,
+            script_path=os.path.abspath(args.script) if args.script else None,
+            scene_classes=scene_classes
+        )
 
         with socketserver.TCPServer(("", port), handler) as httpd:
             url = f"http://localhost:{port}"
             print(f"Viewer: {url}")
+            if args.srt:
+                print(f"Subtitles: {args.srt}")
             threading.Timer(0.5, lambda: webbrowser.open(url)).start()
             httpd.serve_forever()
 

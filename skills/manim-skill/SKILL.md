@@ -52,12 +52,6 @@ Before writing any Manim code, plan the video structure:
    - Use one or two accent colors prominently, not all equally
    - Adjust background slightly for different moods
 
-   **Subtitle styling (if user requested subtitles):**
-   - Choose a font that complements the video's tone (e.g., clean sans-serif for technical, elegant serif for formal)
-   - Match subtitle color to palette—white with subtle shadow works on dark backgrounds
-   - Consider font size for readability (24-28pt typical for 1080p)
-   - Plan styling parameters for the ffmpeg burn-in step: `FontName`, `FontSize`, `PrimaryColour`, `OutlineColour`
-
    **Avoid:**
    - Everything appearing at once (reveal sequentially)
    - Same duration for every animation (vary timing)
@@ -94,6 +88,9 @@ class MyScene(Scene):
 1. **Shared helpers at top** - Colors, utility functions
 2. **One class per scene** - Name scenes descriptively: `Scene1_Introduction`, `Scene2_DerivePDE`
 3. **Use sections within scenes** - Comment blocks for organization
+4. Always add subtitles to your animations with `add_subcaption()`
+    - Manim generates a `.srt` file automatically
+    - The viewer handles subtitle display and lets users toggle/resize them
 
 ```python
 import os
@@ -119,11 +116,12 @@ class Scene1_Introduction(Scene):
     def construct(self):
         ## Scene1_Introduction.title
         title = Text("My Topic", font_size=48, color=BLUE)
+        self.add_subcaption("Introducing our topic", duration=2)
         self.play(Write(title))
         self.wait(1)
 
         ## Scene1_Introduction.fadeout
-        self.play(FadeOut(title))
+        self.play(FadeOut(title), subcaption="Let's begin", subcaption_duration=1)
 ```
 
 #### Best Practices
@@ -134,19 +132,6 @@ class Scene1_Introduction(Scene):
 - Use `VGroup()` to organize related objects
 - End scenes with `FadeOut()` for smooth transitions
 - Add `self.wait()` after key moments for viewer comprehension
-
-#### Subtitles (Optional)
-
-**If the user requests subtitles**, add them to your code:
-
-- Use `add_subcaption()` for every key moment
-- Keep bottom 15% clear for subtitles—avoid placing text or key visuals in `DOWN` edge areas
-
-```python
-self.add_subcaption("Introducing our topic", duration=2)
-self.play(Write(title))
-self.play(FadeOut(title), subcaption="Let's begin", subcaption_duration=1)
-```
 
 ### Phase 3: Render
 
@@ -183,21 +168,16 @@ EOF
 ffmpeg -y -f concat -safe 0 -i /tmp/concat_list.txt -c copy <theme>_final.mp4
 ```
 
-#### Burn in subtitles (optional)
-
-If you used `add_subcaption()`, burn the `.srt` file into the final video:
-
-```bash
-ffmpeg -i <theme>_final.mp4 -vf "subtitles=<theme>_final.srt:force_style='FontSize=24,FontName=Arial'" <theme>_subtitled.mp4
-```
-
 ### Phase 4: Iterate on User Feedback
 
 Launch the viewer for user to review and provide feedback:
 
 ```bash
-python3 tools/video_viewer.py <theme>_final.mp4 /path/to/Scene1.mp4 /path/to/Scene2.mp4 ...
+python3 tools/video_viewer.py <theme>_final.mp4 /path/to/Scene1.mp4 /path/to/Scene2.mp4 ... [--srt /path/to/subtitles.srt] [--script /path/to/script.py]
 ```
+
+- `--srt`: Path to SRT subtitle file (enables CC button in viewer)
+- `--script`: Path to Manim script (enables high-quality download option)
 
 When user provides feedback:
 1. Identify which scenes need changes
