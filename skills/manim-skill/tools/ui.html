@@ -122,7 +122,7 @@
                         <svg id="replayIcon" viewBox="0 0 24 24" hidden><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                     </button>
                     <div class="time"><span id="curTime">0:00</span><span class="sep">/</span><span id="durTime">0:00</span></div>
-                    <button class="copy-btn" id="copyBtn">Copy</button>
+                    <button class="copy-btn" id="copyBtn">Copy timestamp</button>
                     <div class="scene-name" id="sceneName">-</div>
                     <div class="spacer"></div>
                     <button class="ctrl-btn" id="ccBtn" title="Subtitles" hidden>
@@ -153,7 +153,7 @@
         <div class="chapters">
             <h3>Chapters</h3>
             <div class="chapter-list" id="chapterList"></div>
-            <div class="shortcuts"><kbd>T</kbd> Copy timestamp</div>
+            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>T</kbd> Copy timestamp</div>
         </div>
     </div>
     <div class="modal-overlay" id="downloadModal">
@@ -335,7 +335,7 @@ async function init() {
         navigator.clipboard.writeText(`[${fmtPrecise(video.currentTime)}] ${getChapter(video.currentTime)?.name || ''}: `);
         copyBtn.textContent = 'Copied!';
         copyBtn.classList.add('copied');
-        setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1000);
+        setTimeout(() => { copyBtn.textContent = 'Copy timestamp'; copyBtn.classList.remove('copied'); }, 1000);
     });
 
     // CC toggle
