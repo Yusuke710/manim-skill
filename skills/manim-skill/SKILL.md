@@ -157,15 +157,18 @@ Default media_dir is `./media`.
 Once all scenes render successfully, combine them:
 
 ```bash
-# Create concat list
-cat > /tmp/concat_list.txt << 'EOF'
-file '/path/to/Scene1_Intro.mp4'
-file '/path/to/Scene2_Main.mp4'
-file '/path/to/Scene3_Conclusion.mp4'
+# Create concat list (save in media dir for reuse)
+cat > <media_dir>/concat.txt << 'EOF'
+file '<media_dir>/videos/<script_name>/<quality>/Scene1_Intro.mp4'
+file '<media_dir>/videos/<script_name>/<quality>/Scene2_Main.mp4'
+file '<media_dir>/videos/<script_name>/<quality>/Scene3_Conclusion.mp4'
 EOF
 
-# Combine into final video (name by theme, e.g., fourier_transform_final.mp4)
-ffmpeg -y -f concat -safe 0 -i /tmp/concat_list.txt -c copy <theme>_final.mp4
+# Combine videos
+ffmpeg -y -f concat -safe 0 -i <media_dir>/concat.txt -c copy <media_dir>/<theme>_final.mp4
+
+# Combine subtitles (outputs final.srt in same dir)
+python3 tools/concat_srt.py <media_dir>/concat.txt
 ```
 
 ### Phase 4: Iterate on User Feedback
@@ -173,10 +176,11 @@ ffmpeg -y -f concat -safe 0 -i /tmp/concat_list.txt -c copy <theme>_final.mp4
 Launch the viewer for user to review and provide feedback:
 
 ```bash
-python3 tools/video_viewer.py <theme>_final.mp4 /path/to/Scene1.mp4 /path/to/Scene2.mp4 ... [--srt /path/to/subtitles.srt] [--script /path/to/script.py]
+python3 tools/video_viewer.py <media_dir>/<theme>_final.mp4 --order <media_dir>/concat.txt [--srt <media_dir>/final.srt] [--script /path/to/script.py]
 ```
 
-- `--srt`: Path to SRT subtitle file (enables CC button in viewer)
+- `--order`: Video order file (concat.txt used by ffmpeg, required to show chapters)
+- `--srt`: Path to combined SRT subtitle file (enables CC button)
 - `--script`: Path to Manim script (enables high-quality download option)
 
 When user provides feedback:

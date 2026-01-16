@@ -1,44 +1,34 @@
-# Video Viewer
+# Video Tools
 
-Local browser-based viewer for reviewing Manim animations with chapter navigation and timestamped feedback.
+## concat_srt.py
 
-## Usage
+Concatenate SRT files with time offsets based on video order.
 
 ```bash
-python3 video_viewer.py <final_video.mp4> <scene1.mp4> <scene2.mp4> ...
+python3 concat_srt.py <order.txt> [output.srt]
 ```
 
-Example:
+- Reads `concat.txt` (same file used by ffmpeg)
+- Finds `.srt` next to each `.mp4`
+- Outputs `final.srt` in same directory (or explicit path)
+
+## video_viewer.py
+
+Browser-based viewer for Manim animations with chapter navigation.
+
 ```bash
-python3 video_viewer.py fourier_final.mp4 \
-  media/videos/480p15/Scene1_Intro.mp4 \
-  media/videos/480p15/Scene2_Transform.mp4 \
-  media/videos/480p15/Scene3_Conclusion.mp4
+python3 video_viewer.py <video.mp4> --order <concat.txt> [--srt <subtitles.srt>] [--script <script.py>]
 ```
 
-## Features
+**Options:**
+- `--order` - Video order file (required)
+- `--srt` - Subtitles file
+- `--script` - Manim script (enables HQ download)
+- `--port` - Server port (default: auto)
 
-- **Chapter navigation** - Click chapters to jump to scenes, thumbnails auto-extracted
-- **Copy timestamp** - Copies `[M:SS.mmm] SceneName: ` format for pasting feedback
-- **Frame-by-frame** - Step through animations precisely
-- **Playback speed** - 0.5x, 1x, 1.5x, 2x
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `Space` | Play/Pause |
-| `Left Arrow` | Previous frame |
-| `Right Arrow` | Next frame |
-| `C` | Copy timestamp |
-
-## Options
-
-```
---port PORT    Server port (default: auto-finds available port)
-```
+**Shortcuts:** `Space` play/pause, `←→` frame step, `C` copy timestamp
 
 ## Requirements
 
 - Python 3.10+
-- ffmpeg/ffprobe (for thumbnails and duration detection)
+- ffmpeg/ffprobe

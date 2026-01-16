@@ -158,10 +158,17 @@ def find_port(start=8000, end=9000):
             pass
     return None
 
+def parse_order_file(path):
+    videos = []
+    for line in Path(path).read_text().splitlines():
+        if m := re.match(r"file '(.+)'", line.strip()):
+            videos.append(m[1])
+    return videos
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("video")
-    p.add_argument("scenes", nargs="+")
+    p.add_argument("--order", required=True, help="concat.txt with video file list")
     p.add_argument("--port", type=int, default=0)
     p.add_argument("--srt")
     p.add_argument("--script")
@@ -169,6 +176,12 @@ def main():
 
     if not os.path.exists(args.video):
         sys.exit(f"Error: {args.video} not found")
+    if not os.path.exists(args.order):
+        sys.exit(f"Error: {args.order} not found")
+
+    scenes = parse_order_file(args.order)
+    if not scenes:
+        sys.exit("Error: No videos found in order file")
 
     port = args.port or find_port()
     if not port:
@@ -178,7 +191,7 @@ def main():
 
     try:
         print("Building chapters...")
-        chapters = build_chapters(args.scenes, temp)
+        chapters = build_chapters(scenes, temp)
         print(f"Found {len(chapters)} chapters")
 
         ctx = {
@@ -187,7 +200,7 @@ def main():
             "temp": temp,
             "srt": os.path.abspath(args.srt) if args.srt else None,
             "script": os.path.abspath(args.script) if args.script else None,
-            "scenes": [scene_name(s) for s in args.scenes if os.path.exists(s)]
+            "scenes": [scene_name(s) for s in scenes if os.path.exists(s)]
         }
 
         handler = lambda *a, **kw: Handler(*a, ctx=ctx, **kw)
