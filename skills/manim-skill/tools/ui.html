@@ -23,9 +23,13 @@
 
         /* Controls */
         .controls { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); position: absolute; bottom: 0; left: 0; right: 0; }
-        .play-btn { background: transparent; border: none; color: #fff; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-        .play-btn:hover { background: rgba(255,255,255,0.1); }
-        .play-btn svg { width: 24px; height: 24px; fill: #fff; }
+        .play-btn, .ctrl-btn { background: transparent; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .play-btn { width: 40px; height: 40px; border-radius: 50%; }
+        .ctrl-btn { width: 36px; height: 36px; border-radius: 4px; }
+        .play-btn:hover, .ctrl-btn:hover { background: rgba(255,255,255,0.1); }
+        .play-btn svg, .ctrl-btn svg { width: 24px; height: 24px; fill: #fff; }
+        .ctrl-btn svg { width: 20px; height: 20px; }
+        .ctrl-btn.active { background: rgba(255,255,255,0.2); }
         .time { font-size: 13px; margin-left: 4px; }
         .time .sep { color: #aaa; margin: 0 4px; }
         .copy-btn { background: #238636; border: none; color: #fff; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 0 8px; }
@@ -42,41 +46,27 @@
         .subtitle-text.size-medium { font-size: 24px; }
         .subtitle-text.size-large { font-size: 36px; }
 
-        /* Control buttons */
-        .ctrl-btn { background: transparent; border: none; color: #fff; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; position: relative; }
-        .ctrl-btn:hover { background: rgba(255,255,255,0.1); }
-        .ctrl-btn svg { width: 20px; height: 20px; fill: #fff; }
-        .ctrl-btn.active svg { fill: #fff; }
-        .ctrl-btn.cc-btn.active { background: rgba(255,255,255,0.2); }
-
-        /* Speed menu */
+        /* Dropdown menus */
         .menu-wrap { position: relative; }
-        .speed-btn { background: transparent; border: none; color: #fff; padding: 6px 12px; cursor: pointer; font-size: 13px; border-radius: 4px; }
-        .speed-btn:hover { background: rgba(255,255,255,0.1); }
         .dropdown-menu { position: absolute; bottom: 100%; right: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 140px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); margin-bottom: 8px; z-index: 20; }
         .dropdown-menu.open { display: block; }
+        .dropdown-menu.settings { min-width: 180px; }
         .menu-opt { padding: 8px 16px; cursor: pointer; font-size: 14px; display: flex; align-items: center; }
         .menu-opt:hover { background: rgba(255,255,255,0.1); }
         .menu-opt .check { width: 20px; margin-right: 4px; opacity: 0; }
         .menu-opt.active .check { opacity: 1; }
-        .menu-header { padding: 8px 16px; font-size: 12px; color: #aaa; text-transform: uppercase; }
+        .menu-opt .arrow { margin-left: auto; font-size: 12px; color: #aaa; }
         .menu-divider { height: 1px; background: #3f3f3f; margin: 8px 0; }
-
-        /* Settings menu with submenu */
-        .settings-menu { min-width: 180px; }
-        .settings-menu .menu-opt { justify-content: space-between; }
-        .settings-menu .menu-opt .arrow { font-size: 12px; color: #aaa; }
         .submenu { position: absolute; left: -100%; bottom: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 140px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
         .submenu.open { display: block; }
 
         /* Download modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.open { display: flex; }
-        .modal { background: #212121; border-radius: 12px; padding: 24px; min-width: 320px; max-width: 400px; }
+        .modal { background: #212121; border-radius: 12px; padding: 24px; min-width: 320px; }
         .modal h3 { font-size: 18px; margin-bottom: 16px; }
-        .modal p { font-size: 13px; color: #aaa; margin-bottom: 16px; }
         .modal-opts { display: flex; flex-direction: column; gap: 8px; }
-        .modal-opt { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #2a2a2a; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+        .modal-opt { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #2a2a2a; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
         .modal-opt:hover { border-color: #3f3f3f; }
         .modal-opt.selected { border-color: #1E88E5; }
         .modal-opt .info { flex: 1; }
@@ -106,12 +96,12 @@
         .chapter-list::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
         .chapter { display: flex; gap: 12px; padding: 8px; border-radius: 8px; cursor: pointer; }
         .chapter:hover, .chapter.active { background: #272727; }
-        .chapter.active img { border: 2px solid #fff; }
+        .chapter.active img { border-color: #fff; }
         .chapter img { width: 120px; height: 68px; background: #272727; border-radius: 8px; object-fit: cover; border: 2px solid transparent; }
         .chapter-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
         .chapter-info .name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .chapter-info .time { font-size: 12px; color: #aaa; }
-        .shortcuts { font-size: 12px; color: #aaa; padding: 12px 0; border-top: 1px solid #3f3f3f; margin-top: 12px; line-height: 1.8; }
+        .shortcuts { font-size: 12px; color: #aaa; padding: 12px 0; border-top: 1px solid #3f3f3f; margin-top: 12px; }
         .shortcuts kbd { background: #272727; padding: 3px 8px; border-radius: 4px; font-family: inherit; font-size: 11px; margin-right: 4px; }
     </style>
 </head>
@@ -127,38 +117,31 @@
                 </div>
                 <div class="controls">
                     <button class="play-btn" id="playBtn">
-                        <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                        <svg id="iconReplay" viewBox="0 0 24 24" style="display:none"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <svg id="pauseIcon" viewBox="0 0 24 24" hidden><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg id="replayIcon" viewBox="0 0 24 24" hidden><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                     </button>
                     <div class="time"><span id="curTime">0:00</span><span class="sep">/</span><span id="durTime">0:00</span></div>
                     <button class="copy-btn" id="copyBtn">Copy</button>
                     <div class="scene-name" id="sceneName">-</div>
                     <div class="spacer"></div>
-                    <button class="ctrl-btn cc-btn" id="ccBtn" title="Subtitles">
+                    <button class="ctrl-btn" id="ccBtn" title="Subtitles" hidden>
                         <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
                     </button>
                     <div class="menu-wrap">
                         <button class="ctrl-btn" id="settingsBtn" title="Settings">
                             <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
                         </button>
-                        <div class="dropdown-menu settings-menu" id="settingsMenu">
-                            <div class="menu-opt" id="fontSizeOpt">
-                                <span>Subtitle size</span>
-                                <span class="arrow">›</span>
-                            </div>
+                        <div class="dropdown-menu settings" id="settingsMenu">
+                            <div class="menu-opt" data-submenu="fontSizeMenu"><span>Subtitle size</span><span class="arrow">›</span></div>
                             <div class="submenu" id="fontSizeMenu">
                                 <div class="menu-opt" data-size="small"><span class="check">✓</span>Small</div>
                                 <div class="menu-opt active" data-size="medium"><span class="check">✓</span>Medium</div>
                                 <div class="menu-opt" data-size="large"><span class="check">✓</span>Large</div>
                             </div>
                             <div class="menu-divider"></div>
-                            <div class="menu-opt" id="speedOpt">
-                                <span>Playback speed</span>
-                                <span class="arrow">›</span>
-                            </div>
-                            <div class="submenu" id="speedMenu">
-                            </div>
+                            <div class="menu-opt" data-submenu="speedMenu"><span>Playback speed</span><span class="arrow">›</span></div>
+                            <div class="submenu" id="speedMenu"></div>
                         </div>
                     </div>
                     <button class="ctrl-btn" id="downloadBtn" title="Download">
@@ -170,7 +153,7 @@
         <div class="chapters">
             <h3>Chapters</h3>
             <div class="chapter-list" id="chapterList"></div>
-            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>←</kbd><kbd>→</kbd> 5 sec <kbd>C</kbd> Subtitles <kbd>T</kbd> Copy timestamp</div>
+            <div class="shortcuts"><kbd>T</kbd> Copy timestamp</div>
         </div>
     </div>
     <div class="modal-overlay" id="downloadModal">
@@ -179,17 +162,11 @@
             <div class="modal-opts">
                 <div class="modal-opt selected" data-quality="low">
                     <div class="radio"></div>
-                    <div class="info">
-                        <div class="label">Low quality (480p)</div>
-                        <div class="desc">Current preview quality, instant download</div>
-                    </div>
+                    <div class="info"><div class="label">Low quality (480p)</div><div class="desc">Current preview, instant download</div></div>
                 </div>
                 <div class="modal-opt" data-quality="high">
                     <div class="radio"></div>
-                    <div class="info">
-                        <div class="label">High quality (1080p)</div>
-                        <div class="desc">Re-renders video, may take a few minutes</div>
-                    </div>
+                    <div class="info"><div class="label">High quality (1080p)</div><div class="desc">Re-renders, may take a few minutes</div></div>
                 </div>
             </div>
             <div class="modal-progress" id="downloadProgress">
@@ -205,42 +182,30 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), progressBar = $('progressBar'), progressTrack = $('progressTrack'), progressDot = $('progressDot');
-const playBtn = $('playBtn'), iconPlay = $('iconPlay'), iconPause = $('iconPause'), iconReplay = $('iconReplay');
-const curTime = $('curTime'), durTime = $('durTime'), sceneName = $('sceneName');
-const copyBtn = $('copyBtn'), chapterList = $('chapterList');
-const ccBtn = $('ccBtn'), settingsBtn = $('settingsBtn'), settingsMenu = $('settingsMenu');
-const fontSizeOpt = $('fontSizeOpt'), fontSizeMenu = $('fontSizeMenu'), speedOpt = $('speedOpt'), speedMenu = $('speedMenu');
-const subtitleText = $('subtitleText'), downloadBtn = $('downloadBtn'), downloadModal = $('downloadModal');
-const downloadCancel = $('downloadCancel'), downloadConfirm = $('downloadConfirm');
+const subtitleText = $('subtitleText'), chapterList = $('chapterList'), sceneName = $('sceneName');
+const curTime = $('curTime'), durTime = $('durTime'), copyBtn = $('copyBtn');
+const ccBtn = $('ccBtn'), settingsMenu = $('settingsMenu'), downloadModal = $('downloadModal');
 const downloadProgress = $('downloadProgress'), progressFill = $('progressFill'), progressStatus = $('progressStatus');
 
 let chapters = [], subtitles = [], ended = false, dragging = false;
-let subtitlesEnabled = false, subtitleSize = 'medium', playbackSpeed = 1;
-let hasSubtitles = false;
+let subtitlesOn = false, subtitleSize = 'medium';
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 const fmtPrecise = s => `${Math.floor(s/60)}:${(s%60).toFixed(3).padStart(6,'0')}`;
 const getChapter = t => chapters.findLast(c => t >= c.start) || chapters[0];
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-// Parse SRT format
 function parseSRT(text) {
-    const blocks = text.trim().split(/\n\n+/);
-    return blocks.map(block => {
+    return text.trim().split(/\n\n+/).map(block => {
         const lines = block.split('\n');
-        if (lines.length < 3) return null;
-        const timeMatch = lines[1].match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
-        if (!timeMatch) return null;
-        const start = +timeMatch[1]*3600 + +timeMatch[2]*60 + +timeMatch[3] + +timeMatch[4]/1000;
-        const end = +timeMatch[5]*3600 + +timeMatch[6]*60 + +timeMatch[7] + +timeMatch[8]/1000;
-        const text = lines.slice(2).join('\n');
-        return { start, end, text };
+        const m = lines[1]?.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
+        if (!m) return null;
+        return {
+            start: +m[1]*3600 + +m[2]*60 + +m[3] + +m[4]/1000,
+            end: +m[5]*3600 + +m[6]*60 + +m[7] + +m[8]/1000,
+            text: lines.slice(2).join('\n')
+        };
     }).filter(Boolean);
-}
-
-function getCurrentSubtitle(t) {
-    return subtitles.find(s => t >= s.start && t < s.end);
 }
 
 function updateUI() {
@@ -255,235 +220,191 @@ function updateUI() {
     }
 
     // Play button icon
-    iconPlay.style.display = iconPause.style.display = iconReplay.style.display = 'none';
-    (ended ? iconReplay : video.paused ? iconPlay : iconPause).style.display = 'block';
+    ['playIcon', 'pauseIcon', 'replayIcon'].forEach(id => $(id).style.display = 'none');
+    $(ended ? 'replayIcon' : video.paused ? 'playIcon' : 'pauseIcon').style.display = 'block';
 
-    // Progress bar segments
+    // Progress
     chapters.forEach((ch, i) => {
         const fill = document.querySelector(`.chapter-segment[data-i="${i}"] .chapter-segment-fill`);
-        if (!fill) return;
-        const end = ch.start + ch.duration;
-        fill.style.width = t >= end ? '100%' : t > ch.start ? `${(t - ch.start) / ch.duration * 100}%` : '0';
+        if (fill) fill.style.width = t >= ch.start + ch.duration ? '100%' : t > ch.start ? `${(t - ch.start) / ch.duration * 100}%` : '0';
     });
     progressDot.style.left = `calc(${t / d * 100}% - 6px)`;
 
     // Subtitles
-    if (subtitlesEnabled && hasSubtitles) {
-        const sub = getCurrentSubtitle(t);
-        subtitleText.textContent = sub ? sub.text : '';
-    } else {
-        subtitleText.textContent = '';
-    }
+    const sub = subtitlesOn && subtitles.find(s => t >= s.start && t < s.end);
+    subtitleText.textContent = sub ? sub.text : '';
 }
 
 function togglePlay() {
-    if (ended) { video.currentTime = 0; ended = false; video.play(); }
-    else video.paused ? video.play() : video.pause();
+    if (ended) { video.currentTime = 0; ended = false; }
+    video.paused ? video.play() : video.pause();
 }
 
 function seek(e) {
-    const pct = clamp((e.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth, 0, 1);
-    video.currentTime = pct * video.duration;
+    video.currentTime = Math.max(0, Math.min(1, (e.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth)) * video.duration;
     ended = false;
     updateUI();
 }
 
+async function downloadVideo(quality) {
+    $('downloadConfirm').disabled = true;
+    downloadProgress.classList.add('show');
+    progressFill.style.width = '0%';
+    progressStatus.textContent = quality === 'high' ? 'Re-rendering...' : 'Preparing...';
+
+    let checkInterval;
+    if (quality === 'high') {
+        checkInterval = setInterval(async () => {
+            const res = await fetch('/download/status').catch(() => null);
+            if (res?.ok) {
+                const s = await res.json();
+                progressFill.style.width = s.progress + '%';
+                progressStatus.textContent = s.message;
+            }
+        }, 1000);
+    }
+
+    try {
+        const res = await fetch('/download?quality=' + quality);
+        if (checkInterval) clearInterval(checkInterval);
+        if (!res.ok) throw new Error('Download failed');
+
+        progressFill.style.width = '100%';
+        progressStatus.textContent = 'Ready!';
+
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = res.headers.get('X-Filename') || 'video.mp4';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setTimeout(() => downloadModal.classList.remove('open'), 500);
+    } catch (e) {
+        if (checkInterval) clearInterval(checkInterval);
+        progressStatus.textContent = 'Error: ' + e.message;
+        $('downloadConfirm').disabled = false;
+    }
+}
+
 async function init() {
-    // Load chapters
+    // Load data
     chapters = await (await fetch('/chapters.json')).json();
+    try {
+        const res = await fetch('/subtitles.srt');
+        if (res.ok) subtitles = parseSRT(await res.text());
+    } catch {}
+
+    // Render chapters & progress
     chapterList.innerHTML = chapters.map((c, i) =>
-        `<div class="chapter" data-i="${i}" data-t="${c.start}"><img src="/thumb_${i}.jpg"><div class="chapter-info"><div class="name">${c.name}</div><div class="time">${fmt(c.start)}</div></div></div>`
+        `<div class="chapter" data-t="${c.start}"><img src="/thumb_${i}.jpg"><div class="chapter-info"><div class="name">${c.name}</div><div class="time">${fmt(c.start)}</div></div></div>`
     ).join('');
     progressTrack.innerHTML = chapters.map((c, i) =>
         `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`
     ).join('');
 
-    // Load subtitles
-    try {
-        const srtRes = await fetch('/subtitles.srt');
-        if (srtRes.ok) {
-            const srtText = await srtRes.text();
-            subtitles = parseSRT(srtText);
-            hasSubtitles = subtitles.length > 0;
-        }
-    } catch (e) { hasSubtitles = false; }
-
-    // Show/hide CC button based on subtitle availability
-    ccBtn.style.display = hasSubtitles ? 'flex' : 'none';
-
-    // Speed menu
-    speedMenu.innerHTML = SPEEDS.map(s =>
+    // Render speed menu
+    $('speedMenu').innerHTML = SPEEDS.map(s =>
         `<div class="menu-opt${s === 1 ? ' active' : ''}" data-speed="${s}"><span class="check">✓</span>${s === 1 ? 'Normal' : s + 'x'}</div>`
     ).join('');
 
-    // Event listeners
+    // Show CC button if subtitles exist
+    if (subtitles.length) ccBtn.hidden = false;
+
+    // Video events
     video.addEventListener('timeupdate', updateUI);
     video.addEventListener('play', () => { ended = false; updateUI(); });
     video.addEventListener('pause', updateUI);
     video.addEventListener('ended', () => { ended = true; updateUI(); });
     video.addEventListener('loadedmetadata', () => durTime.textContent = fmt(video.duration));
     video.addEventListener('click', togglePlay);
-    playBtn.addEventListener('click', togglePlay);
+    $('playBtn').addEventListener('click', togglePlay);
 
+    // Progress bar drag
     progressBar.addEventListener('mousedown', e => { dragging = true; progressBar.classList.add('dragging'); seek(e); });
     document.addEventListener('mousemove', e => dragging && seek(e));
-    document.addEventListener('mouseup', () => { if (dragging) { dragging = false; progressBar.classList.remove('dragging'); } });
+    document.addEventListener('mouseup', () => { dragging && (dragging = false, progressBar.classList.remove('dragging')); });
 
+    // Chapter click
     chapterList.addEventListener('click', e => {
         const ch = e.target.closest('.chapter');
         if (ch) { video.currentTime = +ch.dataset.t; ended = false; updateUI(); }
     });
 
+    // Copy timestamp
     copyBtn.addEventListener('click', () => {
-        const ch = getChapter(video.currentTime);
-        navigator.clipboard.writeText(`[${fmtPrecise(video.currentTime)}] ${ch?.name || ''}: `);
+        navigator.clipboard.writeText(`[${fmtPrecise(video.currentTime)}] ${getChapter(video.currentTime)?.name || ''}: `);
         copyBtn.textContent = 'Copied!';
         copyBtn.classList.add('copied');
         setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1000);
     });
 
-    // CC button
+    // CC toggle
     ccBtn.addEventListener('click', () => {
-        subtitlesEnabled = !subtitlesEnabled;
-        ccBtn.classList.toggle('active', subtitlesEnabled);
+        subtitlesOn = !subtitlesOn;
+        ccBtn.classList.toggle('active', subtitlesOn);
         updateUI();
     });
 
-    // Settings menu
-    const closeMenus = () => {
-        settingsMenu.classList.remove('open');
-        fontSizeMenu.classList.remove('open');
-        speedMenu.classList.remove('open');
-    };
-    settingsBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        const wasOpen = settingsMenu.classList.contains('open');
-        closeMenus();
-        if (!wasOpen) settingsMenu.classList.add('open');
-    });
+    // Settings menu (click to open)
+    const closeMenus = () => settingsMenu.querySelectorAll('.open').forEach(el => el.classList.remove('open')) || settingsMenu.classList.remove('open');
+    $('settingsBtn').addEventListener('click', e => { e.stopPropagation(); settingsMenu.classList.toggle('open'); });
     document.addEventListener('click', closeMenus);
 
-    // Font size submenu
-    fontSizeOpt.addEventListener('mouseenter', () => {
-        speedMenu.classList.remove('open');
-        fontSizeMenu.classList.add('open');
-    });
-    fontSizeMenu.addEventListener('click', e => {
-        const opt = e.target.closest('.menu-opt');
-        if (!opt) return;
-        e.stopPropagation();
-        subtitleSize = opt.dataset.size;
-        subtitleText.className = 'subtitle-text size-' + subtitleSize;
-        fontSizeMenu.querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.size === subtitleSize));
-        closeMenus();
+    // Submenu hover
+    settingsMenu.addEventListener('mouseover', e => {
+        const opt = e.target.closest('[data-submenu]');
+        if (opt) {
+            settingsMenu.querySelectorAll('.submenu').forEach(s => s.classList.remove('open'));
+            $(opt.dataset.submenu).classList.add('open');
+        }
     });
 
-    // Speed submenu
-    speedOpt.addEventListener('mouseenter', () => {
-        fontSizeMenu.classList.remove('open');
-        speedMenu.classList.add('open');
+    // Font size selection
+    $('fontSizeMenu').addEventListener('click', e => {
+        const opt = e.target.closest('[data-size]');
+        if (opt) {
+            subtitleSize = opt.dataset.size;
+            subtitleText.className = 'subtitle-text size-' + subtitleSize;
+            $('fontSizeMenu').querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.size === subtitleSize));
+            closeMenus();
+        }
     });
-    speedMenu.addEventListener('click', e => {
-        const opt = e.target.closest('.menu-opt');
-        if (!opt) return;
-        e.stopPropagation();
-        playbackSpeed = +opt.dataset.speed;
-        video.playbackRate = playbackSpeed;
-        speedMenu.querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', +el.dataset.speed === playbackSpeed));
-        closeMenus();
+
+    // Speed selection
+    $('speedMenu').addEventListener('click', e => {
+        const opt = e.target.closest('[data-speed]');
+        if (opt) {
+            video.playbackRate = +opt.dataset.speed;
+            $('speedMenu').querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.speed === opt.dataset.speed));
+            closeMenus();
+        }
     });
 
     // Download modal
     let selectedQuality = 'low';
-    downloadBtn.addEventListener('click', () => {
-        downloadModal.classList.add('open');
-        downloadProgress.classList.remove('show');
-        downloadConfirm.disabled = false;
-    });
-    downloadCancel.addEventListener('click', () => downloadModal.classList.remove('open'));
-    downloadModal.addEventListener('click', e => { if (e.target === downloadModal) downloadModal.classList.remove('open'); });
+    $('downloadBtn').addEventListener('click', () => { downloadModal.classList.add('open'); downloadProgress.classList.remove('show'); $('downloadConfirm').disabled = false; });
+    $('downloadCancel').addEventListener('click', () => downloadModal.classList.remove('open'));
+    downloadModal.addEventListener('click', e => e.target === downloadModal && downloadModal.classList.remove('open'));
+    downloadModal.querySelectorAll('.modal-opt').forEach(opt => opt.addEventListener('click', () => {
+        downloadModal.querySelectorAll('.modal-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        selectedQuality = opt.dataset.quality;
+    }));
+    $('downloadConfirm').addEventListener('click', () => downloadVideo(selectedQuality));
 
-    document.querySelectorAll('.modal-opt').forEach(opt => {
-        opt.addEventListener('click', () => {
-            document.querySelectorAll('.modal-opt').forEach(o => o.classList.remove('selected'));
-            opt.classList.add('selected');
-            selectedQuality = opt.dataset.quality;
-        });
-    });
-
-    downloadConfirm.addEventListener('click', async () => {
-        downloadConfirm.disabled = true;
-        downloadProgress.classList.add('show');
-        progressFill.style.width = '0%';
-        progressStatus.textContent = selectedQuality === 'high' ? 'Re-rendering in high quality...' : 'Preparing download...';
-
-        try {
-            const params = new URLSearchParams({ quality: selectedQuality });
-
-            // Poll for progress if high quality
-            if (selectedQuality === 'high') {
-                progressFill.style.width = '10%';
-                const checkProgress = setInterval(async () => {
-                    try {
-                        const statusRes = await fetch('/download/status');
-                        if (statusRes.ok) {
-                            const status = await statusRes.json();
-                            progressFill.style.width = status.progress + '%';
-                            progressStatus.textContent = status.message;
-                        }
-                    } catch (e) {}
-                }, 1000);
-
-                const res = await fetch('/download?' + params);
-                clearInterval(checkProgress);
-
-                if (!res.ok) throw new Error('Download failed');
-                progressFill.style.width = '100%';
-                progressStatus.textContent = 'Download ready!';
-
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = res.headers.get('X-Filename') || 'video.mp4';
-                a.click();
-                URL.revokeObjectURL(url);
-            } else {
-                progressFill.style.width = '50%';
-                const res = await fetch('/download?' + params);
-                if (!res.ok) throw new Error('Download failed');
-                progressFill.style.width = '100%';
-                progressStatus.textContent = 'Download ready!';
-
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = res.headers.get('X-Filename') || 'video.mp4';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-
-            setTimeout(() => downloadModal.classList.remove('open'), 500);
-        } catch (e) {
-            progressStatus.textContent = 'Error: ' + e.message;
-            downloadConfirm.disabled = false;
-        }
-    });
-
+    // Keyboard shortcuts
     document.addEventListener('keydown', e => {
         if (e.target.tagName === 'INPUT' || downloadModal.classList.contains('open')) return;
-        const handlers = {
-            Space: () => { e.preventDefault(); togglePlay(); },
-            KeyK: () => { e.preventDefault(); togglePlay(); },
-            ArrowLeft: () => { e.preventDefault(); video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
-            KeyJ: () => { e.preventDefault(); video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
-            ArrowRight: () => { e.preventDefault(); video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
-            KeyL: () => { e.preventDefault(); video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
-            KeyC: () => { if (hasSubtitles) ccBtn.click(); },
+        const actions = {
+            Space: togglePlay, KeyK: togglePlay,
+            ArrowLeft: () => { video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
+            ArrowRight: () => { video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
+            KeyJ: () => { video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
+            KeyL: () => { video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
+            KeyC: () => subtitles.length && ccBtn.click(),
             KeyT: () => copyBtn.click()
         };
-        handlers[e.code]?.();
+        if (actions[e.code]) { e.preventDefault(); actions[e.code](); }
     });
 
     updateUI();
