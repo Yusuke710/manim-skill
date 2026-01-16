@@ -159,10 +159,11 @@ def find_port(start=8000, end=9000):
     return None
 
 def parse_order_file(path):
+    base_dir = Path(path).parent
     videos = []
     for line in Path(path).read_text().splitlines():
         if m := re.match(r"file '(.+)'", line.strip()):
-            videos.append(m[1])
+            videos.append(str(base_dir / m[1]))
     return videos
 
 def main():

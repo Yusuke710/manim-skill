@@ -146,42 +146,44 @@ manim -q<quality> [--media_dir <output_dir>] <script.py> Scene1 Scene2 Scene3 ..
 - `-qh` - High quality (1080p60, only when user explicitly requests)
 
 **Output location:**
-`<media_dir>/videos/<script_name>/<quality>/SceneName.mp4`
+`<output_dir>/media/videos/<script_name>/<quality>/SceneName.mp4`
 
-Default media_dir is `./media`.
+Default `<output_dir>` is `.` (current directory).
 
 **If any scene fails:** Read the error, fix the code, re-render only the failed scenes.
 
 #### Stitch scenes with ffmpeg
 
-Once all scenes render successfully, combine them:
+Once all scenes render successfully, combine them. Place concat.txt, final video, and final subtitles in the same directory as script.py:
 
 ```bash
-# Create concat list (save in media dir for reuse)
-cat > <media_dir>/concat.txt << 'EOF'
-file '<media_dir>/videos/<script_name>/<quality>/Scene1_Intro.mp4'
-file '<media_dir>/videos/<script_name>/<quality>/Scene2_Main.mp4'
-file '<media_dir>/videos/<script_name>/<quality>/Scene3_Conclusion.mp4'
+# Create concat list with paths relative to concat.txt location
+cat > concat.txt << 'EOF'
+file 'media/videos/<script_name>/<quality>/Scene1_Intro.mp4'
+file 'media/videos/<script_name>/<quality>/Scene2_Main.mp4'
+file 'media/videos/<script_name>/<quality>/Scene3_Conclusion.mp4'
 EOF
 
 # Combine videos
-ffmpeg -y -f concat -safe 0 -i <media_dir>/concat.txt -c copy <media_dir>/<theme>_final.mp4
+ffmpeg -y -f concat -safe 0 -i concat.txt -c copy <theme>_final.mp4
 
-# Combine subtitles (outputs final.srt in same dir)
-python3 tools/concat_srt.py <media_dir>/concat.txt
+# Combine subtitles (outputs final.srt next to concat.txt)
+python3 tools/concat_srt.py concat.txt
 ```
+
+If user specifies a custom `--media_dir <output_dir>`, adjust paths accordingly (e.g., `file '<output_dir>/media/videos/...'`).
 
 ### Phase 4: Iterate on User Feedback
 
 Launch the viewer for user to review and provide feedback:
 
 ```bash
-python3 tools/video_viewer.py <media_dir>/<theme>_final.mp4 --order <media_dir>/concat.txt [--srt <media_dir>/final.srt] [--script /path/to/script.py]
+python3 tools/video_viewer.py <theme>_final.mp4 --order concat.txt [--srt final.srt] [--script script.py]
 ```
 
-- `--order`: Video order file (concat.txt used by ffmpeg, required to show chapters)
-- `--srt`: Path to combined SRT subtitle file (enables CC button)
-- `--script`: Path to Manim script (enables high-quality download option)
+- `--order`: Video order file (concat.txt, required for chapters)
+- `--srt`: Combined SRT subtitle file (enables CC button)
+- `--script`: Manim script (enables high-quality download option)
 
 When user provides feedback:
 1. Identify which scenes need changes

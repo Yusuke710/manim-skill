@@ -20,16 +20,17 @@ def main():
         sys.exit("Usage: concat_srt.py <order.txt> [output.srt]")
 
     order_file = Path(sys.argv[1])
-    output = Path(sys.argv[2]) if len(sys.argv) > 2 else order_file.parent / "final.srt"
+    base_dir = order_file.parent
+    output = Path(sys.argv[2]) if len(sys.argv) > 2 else base_dir / "final.srt"
 
     videos = []
     for line in order_file.read_text().splitlines():
         if m := re.match(r"file '(.+)'", line.strip()):
-            videos.append(m[1])
+            videos.append(base_dir / m[1])
 
     entries, offset = [], 0.0
     for video in videos:
-        srt = Path(video).with_suffix(".srt")
+        srt = video.with_suffix(".srt")
         if srt.exists():
             for block in srt.read_text().strip().split("\n\n"):
                 lines = block.split("\n")
