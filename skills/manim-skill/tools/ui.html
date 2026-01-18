@@ -221,115 +221,71 @@
     </div>
 <script>
 const $ = id => document.getElementById(id);
-const video = $('video'), progressBar = $('progressBar'), progressTrack = $('progressTrack'), progressDot = $('progressDot');
-const subtitleText = $('subtitleText'), sceneName = $('sceneName'), chapterDropdown = $('chapterDropdown');
-const curTime = $('curTime'), durTime = $('durTime');
-const ccBtn = $('ccBtn'), settingsMenu = $('settingsMenu'), downloadModal = $('downloadModal');
-const downloadProgress = $('downloadProgress'), progressFill = $('progressFill'), progressStatus = $('progressStatus');
-const feedbackTimestamp = $('feedbackTimestamp'), feedbackInput = $('feedbackInput'), feedbackList = $('feedbackList');
-const copyAllBtn = $('copyAllBtn'), clearAllBtn = $('clearAllBtn');
+const video = $('video'), progressBar = $('progressBar'), settingsMenu = $('settingsMenu'), downloadModal = $('downloadModal');
 
-let chapters = [], subtitles = [], ended = false, dragging = false;
-let subtitlesOn = false, subtitleSize = 'medium';
-let feedbackItems = [];
-const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+let chapters = [], subtitles = [], feedbackItems = [];
+let ended = false, dragging = false, subtitlesOn = false;
 
 const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 const getChapter = t => chapters.findLast(c => t >= c.start) || chapters[0];
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const seekBy = delta => { video.currentTime = clamp(video.currentTime + delta, 0, video.duration); ended = false; updateUI(); };
 
 function parseSRT(text) {
     return text.trim().split(/\n\n+/).map(block => {
         const lines = block.split('\n');
         const m = lines[1]?.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
-        if (!m) return null;
-        return {
-            start: +m[1]*3600 + +m[2]*60 + +m[3] + +m[4]/1000,
-            end: +m[5]*3600 + +m[6]*60 + +m[7] + +m[8]/1000,
-            text: lines.slice(2).join('\n')
-        };
+        return m ? { start: +m[1]*3600 + +m[2]*60 + +m[3] + +m[4]/1000, end: +m[5]*3600 + +m[6]*60 + +m[7] + +m[8]/1000, text: lines.slice(2).join('\n') } : null;
     }).filter(Boolean);
 }
 
 function updateUI() {
-    const t = video.currentTime, d = video.duration || 1;
-    curTime.textContent = fmt(t);
-    durTime.textContent = fmt(d);
-    feedbackTimestamp.textContent = '@' + fmt(t);
-
-    const ch = getChapter(t);
-    if (ch) {
-        sceneName.textContent = ch.name;
-        document.querySelectorAll('.chapter-item').forEach((el, i) => el.classList.toggle('active', i === ch.index));
-    }
+    const t = video.currentTime, d = video.duration || 1, ch = getChapter(t);
+    $('curTime').textContent = fmt(t);
+    $('durTime').textContent = fmt(d);
+    $('feedbackTimestamp').textContent = '@' + fmt(t);
+    $('sceneName').textContent = ch?.name || '-';
+    document.querySelectorAll('.chapter-item').forEach((el, i) => el.classList.toggle('active', i === ch?.index));
 
     // Play button icon
-    ['playIcon', 'pauseIcon', 'replayIcon'].forEach(id => $(id).style.display = 'none');
-    $(ended ? 'replayIcon' : video.paused ? 'playIcon' : 'pauseIcon').style.display = 'block';
+    $('playIcon').style.display = !ended && video.paused ? 'block' : 'none';
+    $('pauseIcon').style.display = !ended && !video.paused ? 'block' : 'none';
+    $('replayIcon').style.display = ended ? 'block' : 'none';
 
-    // Progress
-    chapters.forEach((ch, i) => {
+    // Progress bar
+    chapters.forEach((c, i) => {
         const fill = document.querySelector(`.chapter-segment[data-i="${i}"] .chapter-segment-fill`);
-        if (fill) fill.style.width = t >= ch.start + ch.duration ? '100%' : t > ch.start ? `${(t - ch.start) / ch.duration * 100}%` : '0';
+        if (fill) fill.style.width = t >= c.start + c.duration ? '100%' : t > c.start ? `${(t - c.start) / c.duration * 100}%` : '0';
     });
-    progressDot.style.left = `calc(${t / d * 100}% - 6px)`;
+    $('progressDot').style.left = `calc(${t / d * 100}% - 6px)`;
 
     // Subtitles
     const sub = subtitlesOn && subtitles.find(s => t >= s.start && t < s.end);
-    subtitleText.textContent = sub ? sub.text : '';
-}
-
-function addFeedback() {
-    const comment = feedbackInput.value.trim();
-    if (!comment) return;
-    const time = fmt(video.currentTime);
-    const scene = getChapter(video.currentTime)?.name || 'Unknown';
-    feedbackItems.push({ time, scene, comment });
-    feedbackInput.value = '';
-    renderFeedback();
-}
-
-function removeFeedback(index) {
-    feedbackItems.splice(index, 1);
-    renderFeedback();
+    $('subtitleText').textContent = sub ? sub.text : '';
 }
 
 function renderFeedback() {
-    if (feedbackItems.length === 0) {
-        feedbackList.innerHTML = '<div class="feedback-empty">No feedback yet. Add comments as you watch.</div>';
-        copyAllBtn.disabled = true;
-        clearAllBtn.disabled = true;
-    } else {
-        feedbackList.innerHTML = feedbackItems.map((f, i) => `
-            <div class="feedback-item">
-                <div class="feedback-item-header">
-                    <span class="feedback-item-time">[${f.time}]</span>
-                    <span class="feedback-item-scene">${f.scene}</span>
-                    <button class="feedback-item-delete" data-index="${i}">&times;</button>
-                </div>
-                <div class="feedback-item-text">${f.comment}</div>
-            </div>
-        `).join('');
-        copyAllBtn.disabled = false;
-        clearAllBtn.disabled = false;
-    }
+    const list = $('feedbackList'), hasItems = feedbackItems.length > 0;
+    list.innerHTML = hasItems
+        ? feedbackItems.map((f, i) => `<div class="feedback-item"><div class="feedback-item-header"><span class="feedback-item-time">[${f.time}]</span><span class="feedback-item-scene">${f.scene}</span><button class="feedback-item-delete" data-i="${i}">&times;</button></div><div class="feedback-item-text">${f.comment}</div></div>`).join('')
+        : '<div class="feedback-empty">No feedback yet. Add comments as you watch.</div>';
+    $('copyAllBtn').disabled = $('clearAllBtn').disabled = !hasItems;
+}
+
+function addFeedback() {
+    const input = $('feedbackInput'), comment = input.value.trim();
+    if (!comment) return;
+    feedbackItems.push({ time: fmt(video.currentTime), scene: getChapter(video.currentTime)?.name || 'Unknown', comment });
+    input.value = '';
+    renderFeedback();
 }
 
 function copyFeedback() {
-    const text = '═══ VIDEO FEEDBACK ═══\n' +
-        feedbackItems.map(f => `[${f.time}] ${f.scene}: ${f.comment}`).join('\n') +
-        '\n═══════════════════════';
-    navigator.clipboard.writeText(text);
-    copyAllBtn.textContent = 'Copied!';
-    copyAllBtn.classList.add('copied');
-    setTimeout(() => {
-        copyAllBtn.textContent = 'Copy All';
-        copyAllBtn.classList.remove('copied');
-    }, 1500);
-}
-
-function toggleChapterDropdown(e) {
-    e.stopPropagation();
-    chapterDropdown.classList.toggle('open');
+    navigator.clipboard.writeText('═══ VIDEO FEEDBACK ═══\n' + feedbackItems.map(f => `[${f.time}] ${f.scene}: ${f.comment}`).join('\n') + '\n═══════════════════════');
+    const btn = $('copyAllBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy All'; btn.classList.remove('copied'); }, 1500);
 }
 
 function togglePlay() {
@@ -338,39 +294,29 @@ function togglePlay() {
 }
 
 function seek(e) {
-    video.currentTime = Math.max(0, Math.min(1, (e.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth)) * video.duration;
+    video.currentTime = clamp((e.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth, 0, 1) * video.duration;
     ended = false;
     updateUI();
 }
 
 async function downloadVideo(quality) {
     $('downloadConfirm').disabled = true;
-    downloadProgress.classList.add('show');
-    progressFill.style.width = '0%';
-    progressStatus.textContent = quality === 'high' ? 'Re-rendering...' : 'Preparing...';
+    $('downloadProgress').classList.add('show');
+    $('progressFill').style.width = '0%';
+    $('progressStatus').textContent = quality === 'high' ? 'Re-rendering...' : 'Preparing...';
 
-    let checkInterval;
-    if (quality === 'high') {
-        checkInterval = setInterval(async () => {
-            const res = await fetch('/download/status').catch(() => null);
-            if (res?.ok) {
-                const s = await res.json();
-                progressFill.style.width = s.progress + '%';
-                progressStatus.textContent = s.message;
-            }
-        }, 1000);
-    }
+    const checkInterval = quality === 'high' && setInterval(async () => {
+        const res = await fetch('/download/status').catch(() => null);
+        if (res?.ok) { const s = await res.json(); $('progressFill').style.width = s.progress + '%'; $('progressStatus').textContent = s.message; }
+    }, 1000);
 
     try {
         const res = await fetch('/download?quality=' + quality);
         if (checkInterval) clearInterval(checkInterval);
         if (!res.ok) throw new Error('Download failed');
-
-        progressFill.style.width = '100%';
-        progressStatus.textContent = 'Ready!';
-
-        const blob = await res.blob();
-        const a = document.createElement('a');
+        $('progressFill').style.width = '100%';
+        $('progressStatus').textContent = 'Ready!';
+        const blob = await res.blob(), a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = res.headers.get('X-Filename') || 'video.mp4';
         a.click();
@@ -378,144 +324,76 @@ async function downloadVideo(quality) {
         setTimeout(() => downloadModal.classList.remove('open'), 500);
     } catch (e) {
         if (checkInterval) clearInterval(checkInterval);
-        progressStatus.textContent = 'Error: ' + e.message;
+        $('progressStatus').textContent = 'Error: ' + e.message;
         $('downloadConfirm').disabled = false;
     }
 }
 
 async function init() {
-    // Load data
     chapters = await (await fetch('/chapters.json')).json();
-    try {
-        const res = await fetch('/subtitles.srt');
-        if (res.ok) subtitles = parseSRT(await res.text());
-    } catch {}
+    try { const res = await fetch('/subtitles.srt'); if (res.ok) subtitles = parseSRT(await res.text()); } catch {}
 
-    // Render chapter dropdown & progress
-    chapterDropdown.innerHTML = chapters.map((c, i) =>
-        `<div class="chapter-item" data-t="${c.start}"><span class="ch-name">${c.name}</span><span class="ch-time">${fmt(c.start)}</span></div>`
-    ).join('');
-    progressTrack.innerHTML = chapters.map((c, i) =>
-        `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`
-    ).join('');
-
-    // Render speed menu
-    $('speedMenu').innerHTML = SPEEDS.map(s =>
-        `<div class="menu-opt${s === 1 ? ' active' : ''}" data-speed="${s}"><span class="check">✓</span>${s === 1 ? 'Normal' : s + 'x'}</div>`
-    ).join('');
-
-    // Show CC button if subtitles exist
-    if (subtitles.length) ccBtn.hidden = false;
+    $('chapterDropdown').innerHTML = chapters.map(c => `<div class="chapter-item" data-t="${c.start}"><span class="ch-name">${c.name}</span><span class="ch-time">${fmt(c.start)}</span></div>`).join('');
+    $('progressTrack').innerHTML = chapters.map((c, i) => `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`).join('');
+    $('speedMenu').innerHTML = [0.5, 0.75, 1, 1.25, 1.5, 2].map(s => `<div class="menu-opt${s === 1 ? ' active' : ''}" data-speed="${s}"><span class="check">✓</span>${s === 1 ? 'Normal' : s + 'x'}</div>`).join('');
+    if (subtitles.length) $('ccBtn').hidden = false;
 
     // Video events
     video.addEventListener('timeupdate', updateUI);
     video.addEventListener('play', () => { ended = false; updateUI(); });
     video.addEventListener('pause', updateUI);
     video.addEventListener('ended', () => { ended = true; updateUI(); });
-    video.addEventListener('loadedmetadata', () => durTime.textContent = fmt(video.duration));
+    video.addEventListener('loadedmetadata', () => $('durTime').textContent = fmt(video.duration));
     video.addEventListener('click', togglePlay);
     $('playBtn').addEventListener('click', togglePlay);
 
     // Progress bar drag
     progressBar.addEventListener('mousedown', e => { dragging = true; progressBar.classList.add('dragging'); seek(e); });
     document.addEventListener('mousemove', e => dragging && seek(e));
-    document.addEventListener('mouseup', () => { dragging && (dragging = false, progressBar.classList.remove('dragging')); });
+    document.addEventListener('mouseup', () => dragging && (dragging = false, progressBar.classList.remove('dragging')));
 
-    // Chapter dropdown toggle
-    sceneName.addEventListener('click', toggleChapterDropdown);
+    // Document-level click handlers (close dropdowns)
+    const closeMenus = () => settingsMenu.querySelectorAll('.open').forEach(el => el.classList.remove('open')) || settingsMenu.classList.remove('open');
     document.addEventListener('click', e => {
-        if (!e.target.closest('.chapter-dropdown-container')) {
-            chapterDropdown.classList.remove('open');
-        }
+        if (!e.target.closest('.chapter-dropdown-container')) $('chapterDropdown').classList.remove('open');
+        closeMenus();
     });
 
-    // Chapter click in dropdown
-    chapterDropdown.addEventListener('click', e => {
+    // Chapter dropdown
+    $('sceneName').addEventListener('click', e => { e.stopPropagation(); $('chapterDropdown').classList.toggle('open'); });
+    $('chapterDropdown').addEventListener('click', e => {
         const ch = e.target.closest('.chapter-item');
-        if (ch) {
-            video.currentTime = +ch.dataset.t;
-            ended = false;
-            updateUI();
-            chapterDropdown.classList.remove('open');
-        }
+        if (ch) { video.currentTime = +ch.dataset.t; ended = false; updateUI(); $('chapterDropdown').classList.remove('open'); }
     });
 
-    // Feedback handlers
+    // Feedback
     $('feedbackAddBtn').addEventListener('click', addFeedback);
-    feedbackInput.addEventListener('keydown', e => { if (e.key === 'Enter') addFeedback(); });
-    feedbackList.addEventListener('click', e => {
-        const delBtn = e.target.closest('.feedback-item-delete');
-        if (delBtn) removeFeedback(+delBtn.dataset.index);
-    });
-    copyAllBtn.addEventListener('click', copyFeedback);
-    clearAllBtn.addEventListener('click', () => { feedbackItems = []; renderFeedback(); });
+    $('feedbackInput').addEventListener('keydown', e => e.key === 'Enter' && addFeedback());
+    $('feedbackList').addEventListener('click', e => { const btn = e.target.closest('[data-i]'); if (btn) { feedbackItems.splice(+btn.dataset.i, 1); renderFeedback(); } });
+    $('copyAllBtn').addEventListener('click', copyFeedback);
+    $('clearAllBtn').addEventListener('click', () => { feedbackItems = []; renderFeedback(); });
 
     // CC toggle
-    ccBtn.addEventListener('click', () => {
-        subtitlesOn = !subtitlesOn;
-        ccBtn.classList.toggle('active', subtitlesOn);
-        updateUI();
-    });
+    $('ccBtn').addEventListener('click', () => { subtitlesOn = !subtitlesOn; $('ccBtn').classList.toggle('active', subtitlesOn); updateUI(); });
 
-    // Settings menu (click to open)
-    const closeMenus = () => settingsMenu.querySelectorAll('.open').forEach(el => el.classList.remove('open')) || settingsMenu.classList.remove('open');
+    // Settings menu
     $('settingsBtn').addEventListener('click', e => { e.stopPropagation(); settingsMenu.classList.toggle('open'); });
-    document.addEventListener('click', closeMenus);
-
-    // Submenu hover
-    settingsMenu.addEventListener('mouseover', e => {
-        const opt = e.target.closest('[data-submenu]');
-        if (opt) {
-            settingsMenu.querySelectorAll('.submenu').forEach(s => s.classList.remove('open'));
-            $(opt.dataset.submenu).classList.add('open');
-        }
-    });
-
-    // Font size selection
-    $('fontSizeMenu').addEventListener('click', e => {
-        const opt = e.target.closest('[data-size]');
-        if (opt) {
-            subtitleSize = opt.dataset.size;
-            subtitleText.className = 'subtitle-text size-' + subtitleSize;
-            $('fontSizeMenu').querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.size === subtitleSize));
-            closeMenus();
-        }
-    });
-
-    // Speed selection
-    $('speedMenu').addEventListener('click', e => {
-        const opt = e.target.closest('[data-speed]');
-        if (opt) {
-            video.playbackRate = +opt.dataset.speed;
-            $('speedMenu').querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.speed === opt.dataset.speed));
-            closeMenus();
-        }
-    });
+    settingsMenu.addEventListener('mouseover', e => { const opt = e.target.closest('[data-submenu]'); if (opt) { settingsMenu.querySelectorAll('.submenu').forEach(s => s.classList.remove('open')); $(opt.dataset.submenu).classList.add('open'); } });
+    $('fontSizeMenu').addEventListener('click', e => { const opt = e.target.closest('[data-size]'); if (opt) { $('subtitleText').className = 'subtitle-text size-' + opt.dataset.size; $('fontSizeMenu').querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.size === opt.dataset.size)); closeMenus(); } });
+    $('speedMenu').addEventListener('click', e => { const opt = e.target.closest('[data-speed]'); if (opt) { video.playbackRate = +opt.dataset.speed; $('speedMenu').querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.speed === opt.dataset.speed)); closeMenus(); } });
 
     // Download modal
     let selectedQuality = 'low';
-    $('downloadBtn').addEventListener('click', () => { downloadModal.classList.add('open'); downloadProgress.classList.remove('show'); $('downloadConfirm').disabled = false; });
+    $('downloadBtn').addEventListener('click', () => { downloadModal.classList.add('open'); $('downloadProgress').classList.remove('show'); $('downloadConfirm').disabled = false; });
     $('downloadCancel').addEventListener('click', () => downloadModal.classList.remove('open'));
     downloadModal.addEventListener('click', e => e.target === downloadModal && downloadModal.classList.remove('open'));
-    downloadModal.querySelectorAll('.modal-opt').forEach(opt => opt.addEventListener('click', () => {
-        downloadModal.querySelectorAll('.modal-opt').forEach(o => o.classList.remove('selected'));
-        opt.classList.add('selected');
-        selectedQuality = opt.dataset.quality;
-    }));
+    downloadModal.querySelectorAll('.modal-opt').forEach(opt => opt.addEventListener('click', () => { downloadModal.querySelectorAll('.modal-opt').forEach(o => o.classList.remove('selected')); opt.classList.add('selected'); selectedQuality = opt.dataset.quality; }));
     $('downloadConfirm').addEventListener('click', () => downloadVideo(selectedQuality));
 
     // Keyboard shortcuts
     document.addEventListener('keydown', e => {
         if (e.target.tagName === 'INPUT' || downloadModal.classList.contains('open')) return;
-        const actions = {
-            Space: togglePlay, KeyK: togglePlay,
-            ArrowLeft: () => { video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
-            ArrowRight: () => { video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
-            KeyJ: () => { video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
-            KeyL: () => { video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
-            KeyC: () => subtitles.length && ccBtn.click(),
-            KeyF: () => feedbackInput.focus()
-        };
+        const actions = { Space: togglePlay, KeyK: togglePlay, ArrowLeft: () => seekBy(-5), KeyJ: () => seekBy(-5), ArrowRight: () => seekBy(5), KeyL: () => seekBy(5), KeyC: () => subtitles.length && $('ccBtn').click(), KeyF: () => $('feedbackInput').focus() };
         if (actions[e.code]) { e.preventDefault(); actions[e.code](); }
     });
 
