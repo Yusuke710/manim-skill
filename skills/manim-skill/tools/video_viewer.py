@@ -246,6 +246,7 @@ def main():
             url = f"http://localhost:{port}"
             print(f"Viewer: {url}")
             threading.Timer(0.5, lambda: webbrowser.open(url)).start()
+            print(f"VIDEO_READY http://localhost:{port}", flush=True)
             srv.serve_forever()
     except KeyboardInterrupt:
         print("\nStopped")

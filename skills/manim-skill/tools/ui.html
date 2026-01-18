@@ -32,10 +32,6 @@
         .ctrl-btn.active { background: rgba(255,255,255,0.2); }
         .time { font-size: 13px; margin-left: 4px; }
         .time .sep { color: #aaa; margin: 0 4px; }
-        .copy-btn { background: #238636; border: none; color: #fff; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin: 0 8px; }
-        .copy-btn:hover { background: #2ea043; }
-        .copy-btn.copied { background: #1f6feb; }
-        .scene-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
         .spacer { flex: 1; }
 
         /* Subtitle overlay */
@@ -88,20 +84,51 @@
         .modal-progress .fill { height: 100%; background: #1E88E5; width: 0; transition: width 0.3s; }
         .modal-progress .status { font-size: 12px; color: #aaa; margin-top: 8px; }
 
-        /* Chapters sidebar */
-        .chapters { width: 360px; display: flex; flex-direction: column; overflow: hidden; }
-        .chapters h3 { font-size: 16px; font-weight: 500; padding: 12px 0; border-bottom: 1px solid #3f3f3f; margin-bottom: 12px; }
-        .chapter-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .chapter-list::-webkit-scrollbar { width: 8px; }
-        .chapter-list::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
-        .chapter { display: flex; gap: 12px; padding: 8px; border-radius: 8px; cursor: pointer; }
-        .chapter:hover, .chapter.active { background: #272727; }
-        .chapter.active img { border-color: #fff; }
-        .chapter img { width: 120px; height: 68px; background: #272727; border-radius: 8px; object-fit: cover; border: 2px solid transparent; }
-        .chapter-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-        .chapter-info .name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .chapter-info .time { font-size: 12px; color: #aaa; }
-        .shortcuts { font-size: 12px; color: #aaa; padding: 12px 0; border-top: 1px solid #3f3f3f; margin-top: 12px; }
+        /* Chapter dropdown */
+        .chapter-dropdown-container { position: relative; }
+        .scene-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; cursor: pointer; }
+        .scene-name:hover { color: #aaa; }
+        .scene-name::after { content: ' ▼'; font-size: 10px; }
+        .chapter-dropdown { position: absolute; bottom: 100%; left: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 260px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); margin-bottom: 8px; z-index: 20; max-height: 300px; overflow-y: auto; }
+        .chapter-dropdown.open { display: block; }
+        .chapter-dropdown::-webkit-scrollbar { width: 8px; }
+        .chapter-dropdown::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
+        .chapter-item { padding: 10px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .chapter-item:hover { background: rgba(255,255,255,0.1); }
+        .chapter-item.active { background: rgba(255,255,255,0.15); }
+        .chapter-item .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .chapter-item .ch-time { color: #aaa; font-size: 12px; margin-left: 12px; }
+
+        /* Feedback panel */
+        .feedback-panel { width: 320px; display: flex; flex-direction: column; overflow: hidden; background: #181818; border-radius: 12px; padding: 16px; }
+        .feedback-panel h3 { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
+        .feedback-input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+        .feedback-timestamp { background: #272727; padding: 8px 12px; border-radius: 6px; font-size: 14px; font-family: monospace; min-width: 60px; text-align: center; }
+        .feedback-input { flex: 1; background: #272727; border: none; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 14px; outline: none; }
+        .feedback-input:focus { box-shadow: 0 0 0 2px #1E88E5; }
+        .feedback-input::placeholder { color: #666; }
+        .feedback-add-btn { background: #238636; border: none; color: #fff; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+        .feedback-add-btn:hover { background: #2ea043; }
+        .feedback-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        .feedback-list::-webkit-scrollbar { width: 8px; }
+        .feedback-list::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
+        .feedback-item { background: #272727; padding: 10px 12px; border-radius: 8px; position: relative; }
+        .feedback-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .feedback-item-time { font-size: 12px; color: #1E88E5; font-family: monospace; }
+        .feedback-item-scene { font-size: 12px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+        .feedback-item-delete { background: none; border: none; color: #666; cursor: pointer; font-size: 16px; padding: 0 4px; }
+        .feedback-item-delete:hover { color: #f44; }
+        .feedback-item-text { font-size: 14px; }
+        .feedback-empty { color: #666; font-size: 14px; text-align: center; padding: 40px 20px; }
+        .feedback-actions { display: flex; gap: 8px; }
+        .feedback-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .feedback-btn.copy { background: #1E88E5; color: #fff; }
+        .feedback-btn.copy:hover { background: #1976D2; }
+        .feedback-btn.copy.copied { background: #238636; }
+        .feedback-btn.clear { background: #3f3f3f; color: #fff; }
+        .feedback-btn.clear:hover { background: #4f4f4f; }
+        .feedback-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .shortcuts { font-size: 12px; color: #aaa; padding: 12px 0; border-top: 1px solid #3f3f3f; margin-top: auto; }
         .shortcuts kbd { background: #272727; padding: 3px 8px; border-radius: 4px; font-family: inherit; font-size: 11px; margin-right: 4px; }
     </style>
 </head>
@@ -122,8 +149,10 @@
                         <svg id="replayIcon" viewBox="0 0 24 24" hidden><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                     </button>
                     <div class="time"><span id="curTime">0:00</span><span class="sep">/</span><span id="durTime">0:00</span></div>
-                    <button class="copy-btn" id="copyBtn">Copy timestamp</button>
-                    <div class="scene-name" id="sceneName">-</div>
+                    <div class="chapter-dropdown-container">
+                        <div class="scene-name" id="sceneName">-</div>
+                        <div class="chapter-dropdown" id="chapterDropdown"></div>
+                    </div>
                     <div class="spacer"></div>
                     <button class="ctrl-btn" id="ccBtn" title="Subtitles" hidden>
                         <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
@@ -150,10 +179,21 @@
                 </div>
             </div>
         </div>
-        <div class="chapters">
-            <h3>Chapters</h3>
-            <div class="chapter-list" id="chapterList"></div>
-            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>T</kbd> Copy timestamp</div>
+        <div class="feedback-panel">
+            <h3>Feedback</h3>
+            <div class="feedback-input-row">
+                <span class="feedback-timestamp" id="feedbackTimestamp">@0:00</span>
+                <input type="text" class="feedback-input" id="feedbackInput" placeholder="Add comment...">
+                <button class="feedback-add-btn" id="feedbackAddBtn">+</button>
+            </div>
+            <div class="feedback-list" id="feedbackList">
+                <div class="feedback-empty">No feedback yet. Add comments as you watch.</div>
+            </div>
+            <div class="feedback-actions">
+                <button class="feedback-btn copy" id="copyAllBtn" disabled>Copy All</button>
+                <button class="feedback-btn clear" id="clearAllBtn" disabled>Clear</button>
+            </div>
+            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>F</kbd> Add feedback</div>
         </div>
     </div>
     <div class="modal-overlay" id="downloadModal">
@@ -182,17 +222,19 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), progressBar = $('progressBar'), progressTrack = $('progressTrack'), progressDot = $('progressDot');
-const subtitleText = $('subtitleText'), chapterList = $('chapterList'), sceneName = $('sceneName');
-const curTime = $('curTime'), durTime = $('durTime'), copyBtn = $('copyBtn');
+const subtitleText = $('subtitleText'), sceneName = $('sceneName'), chapterDropdown = $('chapterDropdown');
+const curTime = $('curTime'), durTime = $('durTime');
 const ccBtn = $('ccBtn'), settingsMenu = $('settingsMenu'), downloadModal = $('downloadModal');
 const downloadProgress = $('downloadProgress'), progressFill = $('progressFill'), progressStatus = $('progressStatus');
+const feedbackTimestamp = $('feedbackTimestamp'), feedbackInput = $('feedbackInput'), feedbackList = $('feedbackList');
+const copyAllBtn = $('copyAllBtn'), clearAllBtn = $('clearAllBtn');
 
 let chapters = [], subtitles = [], ended = false, dragging = false;
 let subtitlesOn = false, subtitleSize = 'medium';
+let feedbackItems = [];
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-const fmtPrecise = s => `${Math.floor(s/60)}:${(s%60).toFixed(3).padStart(6,'0')}`;
 const getChapter = t => chapters.findLast(c => t >= c.start) || chapters[0];
 
 function parseSRT(text) {
@@ -212,11 +254,12 @@ function updateUI() {
     const t = video.currentTime, d = video.duration || 1;
     curTime.textContent = fmt(t);
     durTime.textContent = fmt(d);
+    feedbackTimestamp.textContent = '@' + fmt(t);
 
     const ch = getChapter(t);
     if (ch) {
         sceneName.textContent = ch.name;
-        document.querySelectorAll('.chapter').forEach((el, i) => el.classList.toggle('active', i === ch.index));
+        document.querySelectorAll('.chapter-item').forEach((el, i) => el.classList.toggle('active', i === ch.index));
     }
 
     // Play button icon
@@ -233,6 +276,60 @@ function updateUI() {
     // Subtitles
     const sub = subtitlesOn && subtitles.find(s => t >= s.start && t < s.end);
     subtitleText.textContent = sub ? sub.text : '';
+}
+
+function addFeedback() {
+    const comment = feedbackInput.value.trim();
+    if (!comment) return;
+    const time = fmt(video.currentTime);
+    const scene = getChapter(video.currentTime)?.name || 'Unknown';
+    feedbackItems.push({ time, scene, comment });
+    feedbackInput.value = '';
+    renderFeedback();
+}
+
+function removeFeedback(index) {
+    feedbackItems.splice(index, 1);
+    renderFeedback();
+}
+
+function renderFeedback() {
+    if (feedbackItems.length === 0) {
+        feedbackList.innerHTML = '<div class="feedback-empty">No feedback yet. Add comments as you watch.</div>';
+        copyAllBtn.disabled = true;
+        clearAllBtn.disabled = true;
+    } else {
+        feedbackList.innerHTML = feedbackItems.map((f, i) => `
+            <div class="feedback-item">
+                <div class="feedback-item-header">
+                    <span class="feedback-item-time">[${f.time}]</span>
+                    <span class="feedback-item-scene">${f.scene}</span>
+                    <button class="feedback-item-delete" data-index="${i}">&times;</button>
+                </div>
+                <div class="feedback-item-text">${f.comment}</div>
+            </div>
+        `).join('');
+        copyAllBtn.disabled = false;
+        clearAllBtn.disabled = false;
+    }
+}
+
+function copyFeedback() {
+    const text = '═══ VIDEO FEEDBACK ═══\n' +
+        feedbackItems.map(f => `[${f.time}] ${f.scene}: ${f.comment}`).join('\n') +
+        '\n═══════════════════════';
+    navigator.clipboard.writeText(text);
+    copyAllBtn.textContent = 'Copied!';
+    copyAllBtn.classList.add('copied');
+    setTimeout(() => {
+        copyAllBtn.textContent = 'Copy All';
+        copyAllBtn.classList.remove('copied');
+    }, 1500);
+}
+
+function toggleChapterDropdown(e) {
+    e.stopPropagation();
+    chapterDropdown.classList.toggle('open');
 }
 
 function togglePlay() {
@@ -294,9 +391,9 @@ async function init() {
         if (res.ok) subtitles = parseSRT(await res.text());
     } catch {}
 
-    // Render chapters & progress
-    chapterList.innerHTML = chapters.map((c, i) =>
-        `<div class="chapter" data-t="${c.start}"><img src="/thumb_${i}.jpg"><div class="chapter-info"><div class="name">${c.name}</div><div class="time">${fmt(c.start)}</div></div></div>`
+    // Render chapter dropdown & progress
+    chapterDropdown.innerHTML = chapters.map((c, i) =>
+        `<div class="chapter-item" data-t="${c.start}"><span class="ch-name">${c.name}</span><span class="ch-time">${fmt(c.start)}</span></div>`
     ).join('');
     progressTrack.innerHTML = chapters.map((c, i) =>
         `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`
@@ -324,19 +421,34 @@ async function init() {
     document.addEventListener('mousemove', e => dragging && seek(e));
     document.addEventListener('mouseup', () => { dragging && (dragging = false, progressBar.classList.remove('dragging')); });
 
-    // Chapter click
-    chapterList.addEventListener('click', e => {
-        const ch = e.target.closest('.chapter');
-        if (ch) { video.currentTime = +ch.dataset.t; ended = false; updateUI(); }
+    // Chapter dropdown toggle
+    sceneName.addEventListener('click', toggleChapterDropdown);
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.chapter-dropdown-container')) {
+            chapterDropdown.classList.remove('open');
+        }
     });
 
-    // Copy timestamp
-    copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(`[${fmtPrecise(video.currentTime)}] ${getChapter(video.currentTime)?.name || ''}: `);
-        copyBtn.textContent = 'Copied!';
-        copyBtn.classList.add('copied');
-        setTimeout(() => { copyBtn.textContent = 'Copy timestamp'; copyBtn.classList.remove('copied'); }, 1000);
+    // Chapter click in dropdown
+    chapterDropdown.addEventListener('click', e => {
+        const ch = e.target.closest('.chapter-item');
+        if (ch) {
+            video.currentTime = +ch.dataset.t;
+            ended = false;
+            updateUI();
+            chapterDropdown.classList.remove('open');
+        }
     });
+
+    // Feedback handlers
+    $('feedbackAddBtn').addEventListener('click', addFeedback);
+    feedbackInput.addEventListener('keydown', e => { if (e.key === 'Enter') addFeedback(); });
+    feedbackList.addEventListener('click', e => {
+        const delBtn = e.target.closest('.feedback-item-delete');
+        if (delBtn) removeFeedback(+delBtn.dataset.index);
+    });
+    copyAllBtn.addEventListener('click', copyFeedback);
+    clearAllBtn.addEventListener('click', () => { feedbackItems = []; renderFeedback(); });
 
     // CC toggle
     ccBtn.addEventListener('click', () => {
@@ -402,7 +514,7 @@ async function init() {
             KeyJ: () => { video.currentTime = Math.max(0, video.currentTime - 5); ended = false; updateUI(); },
             KeyL: () => { video.currentTime = Math.min(video.duration, video.currentTime + 5); ended = false; updateUI(); },
             KeyC: () => subtitles.length && ccBtn.click(),
-            KeyT: () => copyBtn.click()
+            KeyF: () => feedbackInput.focus()
         };
         if (actions[e.code]) { e.preventDefault(); actions[e.code](); }
     });
