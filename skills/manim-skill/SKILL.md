@@ -166,23 +166,17 @@ EOF
 
 # Combine videos
 ffmpeg -y -f concat -safe 0 -i concat.txt -c copy <theme>_final.mp4
-
-# Combine subtitles (outputs final.srt next to concat.txt)
-python3 tools/concat_srt.py concat.txt
 ```
-
-If user specifies a custom `--media_dir <output_dir>`, adjust paths accordingly (e.g., `file '<output_dir>/media/videos/...'`).
 
 ### Phase 4: Iterate on User Feedback
 
 Launch the viewer for user to review and provide feedback:
 
 ```bash
-python3 tools/video_viewer.py <theme>_final.mp4 --order concat.txt [--srt final.srt] [--script script.py]
+python3 tools/video_viewer.py <theme>_final.mp4 --order concat.txt [--script script.py]
 ```
 
 - `--order`: Video order file (concat.txt, required for chapters)
-- `--srt`: Combined SRT subtitle file (enables CC button)
 - `--script`: Manim script (enables high-quality download option)
 
 When user provides feedback:

@@ -40,7 +40,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "/index.html": lambda: self.send_html(Path(__file__).with_name("ui.html").read_text()),
             "/video.mp4": lambda: self.send_file(self.ctx["video"], "video/mp4"),
             "/chapters.json": lambda: self.send_json(self.ctx["chapters"]),
-            "/subtitles.srt": lambda: self.send_file(self.ctx["srt"], "text/plain") if self.ctx.get("srt") else self.send_error(404),
+            "/subtitles.srt": lambda: self.serve_subtitles(),
             "/download": lambda: self.handle_download(query),
             "/download/status": lambda: self.send_json(Handler.progress),
         }
@@ -93,6 +93,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(f.read(end - start + 1))
         except (BrokenPipeError, ConnectionResetError):
             pass
+
+    def serve_subtitles(self):
+        if srt := self.ctx.get("srt"):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", len(srt))
+            self.end_headers()
+            self.wfile.write(srt)
+        else:
+            self.send_error(404)
 
     def handle_download(self, query):
         quality = query.get("quality", ["low"])[0]
@@ -166,6 +176,29 @@ def parse_order_file(path):
             videos.append(str(base_dir / m[1]))
     return videos
 
+def srt_time(s):
+    h, rem = divmod(s, 3600)
+    m, sec = divmod(rem, 60)
+    return f"{int(h):02}:{int(m):02}:{int(sec):02},{int((sec % 1) * 1000):03}"
+
+def concatenate_srts(scenes):
+    """Concatenate SRT files from scene videos with time offset adjustments."""
+    entries, offset = [], 0.0
+    for video in scenes:
+        srt_path = Path(video).with_suffix(".srt")
+        if srt_path.exists():
+            for block in srt_path.read_text().strip().split("\n\n"):
+                lines = block.split("\n")
+                if len(lines) < 3: continue
+                m = re.match(r"(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[,.](\d+)", lines[1])
+                if not m: continue
+                start = int(m[1])*3600 + int(m[2])*60 + int(m[3]) + int(m[4])/1000 + offset
+                end = int(m[5])*3600 + int(m[6])*60 + int(m[7]) + int(m[8])/1000 + offset
+                text = "\n".join(lines[2:])
+                entries.append(f"{len(entries)+1}\n{srt_time(start)} --> {srt_time(end)}\n{text}")
+        offset += get_duration(video)
+    return "\n\n".join(entries) + "\n" if entries else ""
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("video")
@@ -195,11 +228,14 @@ def main():
         chapters = build_chapters(scenes, temp)
         print(f"Found {len(chapters)} chapters")
 
+        # Load explicit SRT or auto-generate from scene SRTs
+        srt_content = Path(args.srt).read_bytes() if args.srt else concatenate_srts(scenes).encode()
+
         ctx = {
             "video": os.path.abspath(args.video),
             "chapters": chapters,
             "temp": temp,
-            "srt": os.path.abspath(args.srt) if args.srt else None,
+            "srt": srt_content or None,
             "script": os.path.abspath(args.script) if args.script else None,
             "scenes": [scene_name(s) for s in scenes if os.path.exists(s)]
         }
