@@ -2,6 +2,8 @@
 
 **Create mathematical animations using Manim Community Edition**
 
+![Manim Skill Demo](manim_skill.gif)
+
 Claude autonomously generates 3b1b like video following a structured workflow: Plan → Code → Render → Iterate.
 
 ## Dependencies
@@ -28,7 +30,7 @@ uv tool install manim
 
 ## How It Works
 
-1. **Plan** - Claude designs the video structure with scenes
+1. **Plan** - Claude designs the video structure with scenes, use claude's "plan mode" if you want to take more control on video creation.
 2. **Code** - Claude writes Manim Community Edition Python code
 3. **Render** - The `render_manim.py` tool renders scenes in parallel
 4. **Iterate** - Claude fixes any render errors and refines based on your feedback
