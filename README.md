@@ -2,16 +2,18 @@
 
 **Create videos like you write code with Claude Code**
 
+Claude autonomously generates 3Blue1Brown-style video following a structured workflow: Plan → Code → Render → Iterate.
+
 ![Manim Skill Demo](manim_skill.gif)
 
-Claude autonomously generates 3Blue1Brown-style video following a structured workflow: Plan → Code → Render → Iterate.
+
 
 ## Dependencies
 
 Before using this skill, install the following dependencies:
 
 ```bash
-# Install System Dependencies
+# Install System Dependencies(on MacOS)
 brew install cairo pkg-config ffmpeg
 
 # Install Manim Community Edition
