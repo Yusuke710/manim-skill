@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: "Roboto", Arial, sans-serif; background: #0f0f0f; color: #fff; height: 100vh; overflow: hidden; }
-        .container { display: flex; height: 100vh; gap: 24px; padding: 24px; }
+        .container { display: flex; height: 100vh; gap: 12px; padding: 24px; }
         .video-section { flex: 1; min-width: 0; }
         .video-wrapper { height: 100%; background: #000; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
         video { flex: 1; width: 100%; object-fit: contain; cursor: pointer; }
@@ -99,10 +99,18 @@
         .chapter-item .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
         .chapter-item .ch-time { color: #aaa; font-size: 12px; margin-left: 12px; }
 
+        /* Resizer */
+        .resizer { width: 6px; background: transparent; cursor: col-resize; position: relative; flex-shrink: 0; margin: 0 -3px; z-index: 10; }
+        .resizer::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 40px; background: #3f3f3f; border-radius: 2px; opacity: 0; transition: opacity 0.2s; }
+        .resizer:hover::after, .resizer.active::after { opacity: 1; }
+        .resizer:hover, .resizer.active { background: rgba(30, 136, 229, 0.2); }
+        body.resizing { cursor: col-resize; user-select: none; }
+        body.resizing video, body.resizing .feedback-panel { pointer-events: none; }
+
         /* Feedback panel */
-        .feedback-panel { width: 320px; display: flex; flex-direction: column; overflow: hidden; background: #181818; border-radius: 12px; padding: 16px; }
+        .feedback-panel { width: 320px; min-width: 200px; max-width: 600px; display: flex; flex-direction: column; overflow: hidden; background: #181818; border-radius: 12px; padding: 16px; }
         .feedback-panel h3 { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
-        .feedback-input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+        .feedback-input-row { display: flex; gap: 8px; align-items: center; margin: 16px 0; }
         .feedback-timestamp { background: #272727; padding: 8px 12px; border-radius: 6px; font-size: 14px; font-family: monospace; min-width: 60px; text-align: center; }
         .feedback-input { flex: 1; background: #272727; border: none; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 14px; outline: none; }
         .feedback-input:focus { box-shadow: 0 0 0 2px #1E88E5; }
@@ -134,6 +142,23 @@
 </head>
 <body>
     <div class="container">
+        <div class="feedback-panel">
+            <h3>Feedback</h3>
+            <div class="feedback-list" id="feedbackList">
+                <div class="feedback-empty">No feedback yet. Add comments as you watch.</div>
+            </div>
+            <div class="feedback-input-row">
+                <span class="feedback-timestamp" id="feedbackTimestamp">@0:00</span>
+                <input type="text" class="feedback-input" id="feedbackInput" placeholder="Add comment...">
+                <button class="feedback-add-btn" id="feedbackAddBtn">+</button>
+            </div>
+            <div class="feedback-actions">
+                <button class="feedback-btn copy" id="copyAllBtn" disabled>Copy All</button>
+                <button class="feedback-btn clear" id="clearAllBtn" disabled>Clear</button>
+            </div>
+            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>F</kbd> Add feedback</div>
+        </div>
+        <div class="resizer" id="resizer"></div>
         <div class="video-section">
             <div class="video-wrapper">
                 <video id="video" src="/video.mp4"></video>
@@ -178,22 +203,6 @@
                     </button>
                 </div>
             </div>
-        </div>
-        <div class="feedback-panel">
-            <h3>Feedback</h3>
-            <div class="feedback-input-row">
-                <span class="feedback-timestamp" id="feedbackTimestamp">@0:00</span>
-                <input type="text" class="feedback-input" id="feedbackInput" placeholder="Add comment...">
-                <button class="feedback-add-btn" id="feedbackAddBtn">+</button>
-            </div>
-            <div class="feedback-list" id="feedbackList">
-                <div class="feedback-empty">No feedback yet. Add comments as you watch.</div>
-            </div>
-            <div class="feedback-actions">
-                <button class="feedback-btn copy" id="copyAllBtn" disabled>Copy All</button>
-                <button class="feedback-btn clear" id="clearAllBtn" disabled>Clear</button>
-            </div>
-            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>F</kbd> Add feedback</div>
         </div>
     </div>
     <div class="modal-overlay" id="downloadModal">
@@ -395,6 +404,29 @@ async function init() {
         if (e.target.tagName === 'INPUT' || downloadModal.classList.contains('open')) return;
         const actions = { Space: togglePlay, KeyK: togglePlay, ArrowLeft: () => seekBy(-5), KeyJ: () => seekBy(-5), ArrowRight: () => seekBy(5), KeyL: () => seekBy(5), KeyC: () => subtitles.length && $('ccBtn').click(), KeyF: () => $('feedbackInput').focus() };
         if (actions[e.code]) { e.preventDefault(); actions[e.code](); }
+    });
+
+    // Panel resizer
+    const resizer = $('resizer'), feedbackPanel = document.querySelector('.feedback-panel');
+    let resizing = false;
+    resizer.addEventListener('mousedown', e => {
+        resizing = true;
+        resizer.classList.add('active');
+        document.body.classList.add('resizing');
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+        if (!resizing) return;
+        const containerRect = document.querySelector('.container').getBoundingClientRect();
+        const newWidth = e.clientX - containerRect.left - 24; // 24px padding
+        feedbackPanel.style.width = clamp(newWidth, 200, 600) + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+        if (resizing) {
+            resizing = false;
+            resizer.classList.remove('active');
+            document.body.classList.remove('resizing');
+        }
     });
 
     updateUI();
