@@ -28,6 +28,9 @@ uv tool install manim
 
 # Install the plugin
 /plugin install manim-skill/manim-skill
+
+# Install Manim Community Edition best practices
+npx skills add adithya-s-k/manim_skill/skills/manimce-best-practices
 ```
 
 ## How to use
