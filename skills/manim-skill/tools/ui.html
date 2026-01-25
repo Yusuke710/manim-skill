@@ -8,8 +8,8 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: "Roboto", Arial, sans-serif; background: #0f0f0f; color: #fff; height: 100vh; overflow: hidden; }
         .container { display: flex; height: 100vh; gap: 12px; padding: 24px; }
-        .video-section { flex: 1; min-width: 0; }
-        .video-wrapper { height: 100%; background: #000; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+        .video-section { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+        .video-wrapper { flex: 1; background: #000; border-radius: 12px 12px 0 0; overflow: hidden; display: flex; flex-direction: column; position: relative; }
         video { flex: 1; width: 100%; object-fit: contain; cursor: pointer; }
 
         /* Progress bar */
@@ -107,56 +107,38 @@
         body.resizing { cursor: col-resize; user-select: none; }
         body.resizing video, body.resizing .feedback-panel { pointer-events: none; }
 
-        /* Feedback panel */
+        /* Feedback panel - chat style */
         .feedback-panel { width: 320px; min-width: 200px; max-width: 600px; display: flex; flex-direction: column; overflow: hidden; background: #181818; border-radius: 12px; padding: 16px; }
-        .feedback-panel h3 { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
-        .feedback-input-row { display: flex; gap: 8px; align-items: center; margin: 16px 0; }
-        .feedback-timestamp { background: #272727; padding: 8px 12px; border-radius: 6px; font-size: 14px; font-family: monospace; min-width: 60px; text-align: center; }
-        .feedback-input { flex: 1; background: #272727; border: none; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 14px; outline: none; }
-        .feedback-input:focus { box-shadow: 0 0 0 2px #1E88E5; }
-        .feedback-input::placeholder { color: #666; }
-        .feedback-add-btn { background: #238636; border: none; color: #fff; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
-        .feedback-add-btn:hover { background: #2ea043; }
-        .feedback-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-        .feedback-list::-webkit-scrollbar { width: 8px; }
-        .feedback-list::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
-        .feedback-item { background: #272727; padding: 10px 12px; border-radius: 8px; position: relative; }
-        .feedback-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .feedback-item-time { font-size: 12px; color: #1E88E5; font-family: monospace; }
-        .feedback-item-scene { font-size: 12px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
-        .feedback-item-delete { background: none; border: none; color: #666; cursor: pointer; font-size: 16px; padding: 0 4px; }
-        .feedback-item-delete:hover { color: #f44; }
-        .feedback-item-text { font-size: 14px; }
-        .feedback-empty { color: #666; font-size: 14px; text-align: center; padding: 40px 20px; }
-        .feedback-actions { display: flex; gap: 8px; }
+        .feedback-textarea { flex: 1; background: #272727; border: none; color: #fff; padding: 12px; border-radius: 8px; font-size: 14px; font-family: inherit; line-height: 1.6; outline: none; resize: none; }
+        .feedback-textarea:focus { box-shadow: 0 0 0 2px #1E88E5; }
+        .feedback-textarea::placeholder { color: #666; }
+        .feedback-actions { display: flex; gap: 8px; margin-top: 12px; }
         .feedback-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
         .feedback-btn.copy { background: #1E88E5; color: #fff; }
         .feedback-btn.copy:hover { background: #1976D2; }
-        .feedback-btn.copy.copied { background: #238636; }
-        .feedback-btn.clear { background: #3f3f3f; color: #fff; }
-        .feedback-btn.clear:hover { background: #4f4f4f; }
-        .feedback-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .shortcuts { font-size: 12px; color: #aaa; padding: 12px 0; border-top: 1px solid #3f3f3f; margin-top: auto; }
+        .shortcuts { font-size: 12px; color: #aaa; padding: 12px 0; border-top: 1px solid #3f3f3f; margin-top: 12px; }
+
+        /* Action buttons below video */
+        .video-actions { display: flex; gap: 8px; padding: 12px 16px; background: #181818; border-radius: 0 0 12px 12px; flex-wrap: wrap; align-items: center; }
+        .action-btn { display: flex; align-items: center; gap: 6px; background: #272727; border: none; color: #fff; padding: 8px 14px; border-radius: 18px; cursor: pointer; font-size: 13px; font-weight: 500; }
+        .action-btn:hover { background: #3f3f3f; }
+        .action-btn svg { width: 16px; height: 16px; fill: currentColor; }
+        .action-btn.add-btn { padding: 8px 12px; font-size: 16px; }
+        #customButtons { display: contents; }
+        .custom-btn-wrap { position: relative; }
+        .custom-btn-wrap .remove-btn { display: none; position: absolute; right: -4px; top: -4px; width: 16px; height: 16px; background: #f44; border: none; border-radius: 50%; color: #fff; font-size: 10px; cursor: pointer; align-items: center; justify-content: center; }
+        .custom-btn-wrap:hover .remove-btn { display: flex; }
         .shortcuts kbd { background: #272727; padding: 3px 8px; border-radius: 4px; font-family: inherit; font-size: 11px; margin-right: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="feedback-panel">
-            <h3>Feedback</h3>
-            <div class="feedback-list" id="feedbackList">
-                <div class="feedback-empty">No feedback yet. Add comments as you watch.</div>
-            </div>
-            <div class="feedback-input-row">
-                <span class="feedback-timestamp" id="feedbackTimestamp">@0:00</span>
-                <input type="text" class="feedback-input" id="feedbackInput" placeholder="Add comment...">
-                <button class="feedback-add-btn" id="feedbackAddBtn">+</button>
-            </div>
+            <textarea class="feedback-textarea" id="feedbackTextarea" placeholder="Click 'Insert Timestamp' while watching to add timestamps here..."></textarea>
             <div class="feedback-actions">
-                <button class="feedback-btn copy" id="copyAllBtn" disabled>Copy All</button>
-                <button class="feedback-btn clear" id="clearAllBtn" disabled>Clear</button>
+                <button class="feedback-btn copy" id="copyAllBtn">Copy</button>
             </div>
-            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>F</kbd> Add feedback</div>
+            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>T</kbd> Insert timestamp</div>
         </div>
         <div class="resizer" id="resizer"></div>
         <div class="video-section">
@@ -203,6 +185,14 @@
                     </button>
                 </div>
             </div>
+            <div class="video-actions">
+                <button class="action-btn" id="insertTimestampBtn">
+                    <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                    Insert Timestamp
+                </button>
+                <div id="customButtons"></div>
+                <button class="action-btn add-btn" id="addCustomBtn" title="Add custom button">+</button>
+            </div>
         </div>
     </div>
     <div class="modal-overlay" id="downloadModal">
@@ -232,7 +222,7 @@
 const $ = id => document.getElementById(id);
 const video = $('video'), progressBar = $('progressBar'), settingsMenu = $('settingsMenu'), downloadModal = $('downloadModal');
 
-let chapters = [], subtitles = [], feedbackItems = [];
+let chapters = [], subtitles = [];
 let ended = false, dragging = false, subtitlesOn = false;
 
 const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
@@ -252,7 +242,6 @@ function updateUI() {
     const t = video.currentTime, d = video.duration || 1, ch = getChapter(t);
     $('curTime').textContent = fmt(t);
     $('durTime').textContent = fmt(d);
-    $('feedbackTimestamp').textContent = '@' + fmt(t);
     $('sceneName').textContent = ch?.name || '-';
     document.querySelectorAll('.chapter-item').forEach((el, i) => el.classList.toggle('active', i === ch?.index));
 
@@ -273,28 +262,25 @@ function updateUI() {
     $('subtitleText').textContent = sub ? sub.text : '';
 }
 
-function renderFeedback() {
-    const list = $('feedbackList'), hasItems = feedbackItems.length > 0;
-    list.innerHTML = hasItems
-        ? feedbackItems.map((f, i) => `<div class="feedback-item"><div class="feedback-item-header"><span class="feedback-item-time">[${f.time}]</span><span class="feedback-item-scene">${f.scene}</span><button class="feedback-item-delete" data-i="${i}">&times;</button></div><div class="feedback-item-text">${f.comment}</div></div>`).join('')
-        : '<div class="feedback-empty">No feedback yet. Add comments as you watch.</div>';
-    $('copyAllBtn').disabled = $('clearAllBtn').disabled = !hasItems;
+function insertText(str, newlineBefore = false) {
+    const ta = $('feedbackTextarea'), start = ta.selectionStart, text = ta.value;
+    const nl = newlineBefore && text.length && start === text.length && !text.endsWith('\n') ? '\n' : '';
+    ta.value = text.slice(0, start) + nl + str + text.slice(ta.selectionEnd);
+    ta.selectionStart = ta.selectionEnd = start + nl.length + str.length;
+    ta.focus();
 }
 
-function addFeedback() {
-    const input = $('feedbackInput'), comment = input.value.trim();
-    if (!comment) return;
-    feedbackItems.push({ time: fmt(video.currentTime), scene: getChapter(video.currentTime)?.name || 'Unknown', comment });
-    input.value = '';
-    renderFeedback();
+function insertTimestamp() {
+    const ch = getChapter(video.currentTime);
+    insertText(`[${fmt(video.currentTime)}] ${ch?.name || 'Unknown'}: `, true);
 }
 
-function copyFeedback() {
-    navigator.clipboard.writeText('═══ VIDEO FEEDBACK ═══\n' + feedbackItems.map(f => `[${f.time}] ${f.scene}: ${f.comment}`).join('\n') + '\n═══════════════════════');
-    const btn = $('copyAllBtn');
-    btn.textContent = 'Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy All'; btn.classList.remove('copied'); }, 1500);
+function copyNotes() {
+    const text = $('feedbackTextarea').value.trim();
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    $('copyAllBtn').textContent = 'Copied!';
+    setTimeout(() => $('copyAllBtn').textContent = 'Copy', 1500);
 }
 
 function togglePlay() {
@@ -376,11 +362,33 @@ async function init() {
     });
 
     // Feedback
-    $('feedbackAddBtn').addEventListener('click', addFeedback);
-    $('feedbackInput').addEventListener('keydown', e => e.key === 'Enter' && addFeedback());
-    $('feedbackList').addEventListener('click', e => { const btn = e.target.closest('[data-i]'); if (btn) { feedbackItems.splice(+btn.dataset.i, 1); renderFeedback(); } });
-    $('copyAllBtn').addEventListener('click', copyFeedback);
-    $('clearAllBtn').addEventListener('click', () => { feedbackItems = []; renderFeedback(); });
+    $('insertTimestampBtn').addEventListener('click', insertTimestamp);
+    $('copyAllBtn').addEventListener('click', copyNotes);
+
+    // Custom buttons
+    const STORAGE_KEY = 'customFeedbackButtons';
+    let buttons = JSON.parse(localStorage.getItem(STORAGE_KEY)) || ['fix layout', 'slow down'];
+
+    const render = () => {
+        $('customButtons').innerHTML = buttons.map((label, i) =>
+            `<div class="custom-btn-wrap"><button class="action-btn" data-label="${label}">${label}</button><button class="remove-btn" data-i="${i}">&times;</button></div>`
+        ).join('');
+    };
+    const save = () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(buttons)); render(); };
+
+    $('addCustomBtn').addEventListener('click', () => {
+        const label = prompt('Enter button label:')?.trim();
+        if (label) { buttons.push(label); save(); }
+    });
+
+    $('customButtons').addEventListener('click', e => {
+        const btn = e.target.closest('[data-label]');
+        if (btn) insertText(btn.dataset.label);
+        const rm = e.target.closest('.remove-btn');
+        if (rm) { buttons.splice(+rm.dataset.i, 1); save(); }
+    });
+
+    render();
 
     // CC toggle
     $('ccBtn').addEventListener('click', () => { subtitlesOn = !subtitlesOn; $('ccBtn').classList.toggle('active', subtitlesOn); updateUI(); });
@@ -401,8 +409,8 @@ async function init() {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', e => {
-        if (e.target.tagName === 'INPUT' || downloadModal.classList.contains('open')) return;
-        const actions = { Space: togglePlay, KeyK: togglePlay, ArrowLeft: () => seekBy(-5), KeyJ: () => seekBy(-5), ArrowRight: () => seekBy(5), KeyL: () => seekBy(5), KeyC: () => subtitles.length && $('ccBtn').click(), KeyF: () => $('feedbackInput').focus() };
+        if (e.target.tagName === 'TEXTAREA' || downloadModal.classList.contains('open')) return;
+        const actions = { Space: togglePlay, KeyK: togglePlay, ArrowLeft: () => seekBy(-5), KeyJ: () => seekBy(-5), ArrowRight: () => seekBy(5), KeyL: () => seekBy(5), KeyC: () => subtitles.length && $('ccBtn').click(), KeyT: insertTimestamp };
         if (actions[e.code]) { e.preventDefault(); actions[e.code](); }
     });
 
