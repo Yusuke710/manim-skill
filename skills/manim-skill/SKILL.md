@@ -5,7 +5,7 @@ description: Create mathematical animations with Manim Community Edition(manimce
 
 ## Project Structure
 
-Create a dedicated folder for each animation project with this flat structure:
+Create a dedicated folder for each animation project **in the user's current working directory** (NOT in this skill's base directory). Use this flat structure:
 
 ```
 <project-name>/
@@ -101,7 +101,7 @@ Before writing any Manim code, wrtie `plan.md`:
 
 ### Phase 2: Code
 
-**BEFORE writing any code, you MUST invoke the `manimce-best-practices` skill using the Skill tool to load the coding guidelines.**
+**BEFORE writing any code, you MUST invoke the `manimce-best-practices` skill using the Skill tool, then read the relevant rule files it references (e.g., `rules/scenes.md`, `rules/animations.md`) based on what your video needs.**
 
 Write Manim Community Edition code in `script.py`.
 
