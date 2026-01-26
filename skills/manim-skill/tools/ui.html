@@ -10,7 +10,8 @@
         .container { display: flex; height: 100vh; gap: 12px; padding: 24px; }
         .video-section { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
         .video-wrapper { flex: 1; background: #000; border-radius: 12px 12px 0 0; overflow: hidden; display: flex; flex-direction: column; position: relative; }
-        video { flex: 1; width: 100%; object-fit: contain; cursor: pointer; }
+        .preview-panel video { flex: 1; width: 100%; object-fit: contain; cursor: pointer; }
+        .preview-panel { position: relative; }
 
         /* Progress bar */
         .progress-bar { position: absolute; bottom: 40px; left: 12px; right: 12px; height: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; }
@@ -22,7 +23,8 @@
         .progress-bar:hover .progress-dot, .progress-bar.dragging .progress-dot { transform: translateY(-50%) scale(1); }
 
         /* Controls */
-        .controls { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); position: absolute; bottom: 0; left: 0; right: 0; }
+        .controls { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); position: absolute; bottom: 0; left: 0; right: 0; }
+        .preview-panel.active ~ .controls { display: flex; }
         .play-btn, .ctrl-btn { background: transparent; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .play-btn { width: 40px; height: 40px; border-radius: 50%; }
         .ctrl-btn { width: 36px; height: 36px; border-radius: 4px; }
@@ -107,6 +109,57 @@
         body.resizing { cursor: col-resize; user-select: none; }
         body.resizing video, body.resizing .feedback-panel { pointer-events: none; }
 
+        /* Content tabs */
+        .content-tabs { display: flex; gap: 8px; padding: 8px 16px; background: #1a1a1a; }
+        .content-tab { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; background: transparent; color: #9CA3AF; transition: all 0.15s; }
+        .content-tab:hover { color: #d1d5db; }
+        .content-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* Content panels */
+        .content-panel { display: none; flex: 1; overflow: auto; background: #0f0f0f; position: relative; }
+        .content-panel.active { display: flex; flex-direction: column; }
+        .content-panel.plan-panel, .content-panel.code-panel { background: #121212; }
+        .content-panel.preview-panel { background: #000; }
+
+        /* Plan panel (markdown) */
+        .plan-content { padding: 24px; color: #e5e7eb; line-height: 1.7; font-size: 15px; }
+        .plan-content h1 { font-size: 24px; font-weight: 600; margin: 0 0 16px; color: #fff; border-bottom: 1px solid #333; padding-bottom: 8px; }
+        .plan-content h2 { font-size: 20px; font-weight: 600; margin: 24px 0 12px; color: #fff; }
+        .plan-content h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; color: #fff; }
+        .plan-content p { margin: 0 0 12px; }
+        .plan-content ul, .plan-content ol { margin: 0 0 12px; padding-left: 24px; }
+        .plan-content li { margin: 4px 0; }
+        .plan-content code { background: #272727; padding: 2px 6px; border-radius: 4px; font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; }
+        .plan-content pre { background: #1e1e1e; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 0 0 16px; }
+        .plan-content pre code { background: transparent; padding: 0; }
+        .plan-content blockquote { border-left: 3px solid #3f3f3f; padding-left: 16px; margin: 0 0 12px; color: #9ca3af; }
+        .plan-content strong { color: #fff; }
+        .plan-content a { color: #60a5fa; text-decoration: none; }
+        .plan-content a:hover { text-decoration: underline; }
+        .plan-content hr { border: none; border-top: 1px solid #333; margin: 24px 0; }
+
+        /* Code panel */
+        .code-content { padding: 0; margin: 0; background: #1e1e1e; color: #d4d4d4; font-family: 'Monaco', 'Menlo', 'Consolas', monospace; font-size: 13px; line-height: 1.6; overflow: auto; flex: 1; }
+        .code-content pre { margin: 0; padding: 16px; }
+        .code-line { display: flex; }
+        .code-line:hover { background: rgba(255,255,255,0.03); }
+        .line-number { color: #6e7681; text-align: right; padding-right: 16px; min-width: 50px; user-select: none; }
+        .line-content { flex: 1; white-space: pre; }
+        /* Basic syntax highlighting */
+        .hl-keyword { color: #c586c0; }
+        .hl-string { color: #ce9178; }
+        .hl-comment { color: #6a9955; }
+        .hl-function { color: #dcdcaa; }
+        .hl-class { color: #4ec9b0; }
+        .hl-number { color: #b5cea8; }
+        .hl-decorator { color: #d7ba7d; }
+        .hl-builtin { color: #4fc1ff; }
+
+        /* Empty state */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: #6b7280; padding: 40px; text-align: center; }
+        .empty-state svg { width: 48px; height: 48px; fill: #4b5563; margin-bottom: 16px; }
+        .empty-state p { font-size: 14px; }
+
         /* Feedback panel - chat style */
         .feedback-panel { width: 320px; min-width: 200px; max-width: 600px; display: flex; flex-direction: column; overflow: hidden; background: #181818; border-radius: 12px; padding: 16px; }
         .feedback-textarea { flex: 1; background: #272727; border: none; color: #fff; padding: 12px; border-radius: 8px; font-size: 14px; font-family: inherit; line-height: 1.6; outline: none; resize: none; }
@@ -143,12 +196,43 @@
         <div class="resizer" id="resizer"></div>
         <div class="video-section">
             <div class="video-wrapper">
-                <video id="video" src="/video.mp4"></video>
-                <div class="subtitle-overlay"><div class="subtitle-text size-medium" id="subtitleText"></div></div>
-                <div class="progress-bar" id="progressBar">
-                    <div class="progress-track" id="progressTrack"></div>
-                    <div class="progress-dot" id="progressDot"></div>
+                <!-- Content tabs -->
+                <div class="content-tabs">
+                    <button class="content-tab" data-tab="plan">Plan</button>
+                    <button class="content-tab" data-tab="code">Code</button>
+                    <button class="content-tab active" data-tab="preview">Preview</button>
                 </div>
+
+                <!-- Plan panel -->
+                <div class="content-panel plan-panel" id="planPanel">
+                    <div class="plan-content" id="planContent">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                            <p>No plan.md found</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code panel -->
+                <div class="content-panel code-panel" id="codePanel">
+                    <div class="code-content" id="codeContent">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+                            <p>No cscript.py found</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview panel (video) -->
+                <div class="content-panel preview-panel active" id="previewPanel">
+                    <video id="video" src="/video.mp4"></video>
+                    <div class="subtitle-overlay"><div class="subtitle-text size-medium" id="subtitleText"></div></div>
+                    <div class="progress-bar" id="progressBar">
+                        <div class="progress-track" id="progressTrack"></div>
+                        <div class="progress-dot" id="progressDot"></div>
+                    </div>
+                </div>
+
                 <div class="controls">
                     <button class="play-btn" id="playBtn">
                         <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -236,6 +320,150 @@ function parseSRT(text) {
         const m = lines[1]?.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
         return m ? { start: +m[1]*3600 + +m[2]*60 + +m[3] + +m[4]/1000, end: +m[5]*3600 + +m[6]*60 + +m[7] + +m[8]/1000, text: lines.slice(2).join('\n') } : null;
     }).filter(Boolean);
+}
+
+// Simple markdown parser
+function parseMarkdown(md) {
+    const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    let html = escape(md);
+    // Code blocks
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => `<pre><code>${code.trim()}</code></pre>`);
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Headers
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    // Bold and italic
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    // Horizontal rule
+    html = html.replace(/^---$/gm, '<hr>');
+    // Lists
+    html = html.replace(/^(\s*)[-*] (.+)$/gm, '$1<li>$2</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>');
+    // Numbered lists
+    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+    // Blockquotes
+    html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+    // Paragraphs
+    html = html.split('\n\n').map(p => {
+        p = p.trim();
+        if (!p || p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<ol') || p.startsWith('<pre') || p.startsWith('<blockquote') || p.startsWith('<hr')) return p;
+        return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+    }).join('\n');
+    return html;
+}
+
+// Python syntax highlighter - tokenizer approach to avoid nested replacements
+function highlightPython(code) {
+    const keywords = new Set(['def', 'class', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'finally', 'with', 'as', 'import', 'from', 'return', 'yield', 'raise', 'pass', 'break', 'continue', 'and', 'or', 'not', 'in', 'is', 'lambda', 'True', 'False', 'None', 'self', 'async', 'await']);
+    const builtins = new Set(['print', 'range', 'len', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'super', 'isinstance', 'type', 'open', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'reversed', 'min', 'max', 'sum', 'abs', 'any', 'all']);
+
+    const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const lines = code.split('\n');
+    return lines.map((line, lineNum) => {
+        let result = '';
+        let i = 0;
+
+        while (i < line.length) {
+            // Check for triple-quoted strings first
+            if (line.slice(i, i + 3) === '"""' || line.slice(i, i + 3) === "'''") {
+                const quote = line.slice(i, i + 3);
+                let end = line.indexOf(quote, i + 3);
+                if (end === -1) end = line.length - 3;
+                const str = line.slice(i, end + 3);
+                result += `<span class="hl-string">${escape(str)}</span>`;
+                i = end + 3;
+            }
+            // Check for strings
+            else if (line[i] === '"' || line[i] === "'") {
+                const quote = line[i];
+                let j = i + 1;
+                while (j < line.length && (line[j] !== quote || line[j - 1] === '\\')) j++;
+                const str = line.slice(i, j + 1);
+                result += `<span class="hl-string">${escape(str)}</span>`;
+                i = j + 1;
+            }
+            // Check for comments
+            else if (line[i] === '#') {
+                result += `<span class="hl-comment">${escape(line.slice(i))}</span>`;
+                break;
+            }
+            // Check for decorators
+            else if (line[i] === '@' && /\w/.test(line[i + 1] || '')) {
+                let j = i + 1;
+                while (j < line.length && /\w/.test(line[j])) j++;
+                result += `<span class="hl-decorator">${escape(line.slice(i, j))}</span>`;
+                i = j;
+            }
+            // Check for numbers
+            else if (/\d/.test(line[i]) && (i === 0 || !/\w/.test(line[i - 1]))) {
+                let j = i;
+                while (j < line.length && /[\d.]/.test(line[j])) j++;
+                result += `<span class="hl-number">${escape(line.slice(i, j))}</span>`;
+                i = j;
+            }
+            // Check for words (identifiers, keywords)
+            else if (/[a-zA-Z_]/.test(line[i])) {
+                let j = i;
+                while (j < line.length && /\w/.test(line[j])) j++;
+                const word = line.slice(i, j);
+                const nextChar = line[j] || '';
+                if (keywords.has(word)) {
+                    result += `<span class="hl-keyword">${escape(word)}</span>`;
+                } else if (builtins.has(word) && nextChar === '(') {
+                    result += `<span class="hl-builtin">${escape(word)}</span>`;
+                } else if (i >= 4 && line.slice(i - 4, i) === 'def ') {
+                    result += `<span class="hl-function">${escape(word)}</span>`;
+                } else if (i >= 6 && line.slice(i - 6, i) === 'class ') {
+                    result += `<span class="hl-class">${escape(word)}</span>`;
+                } else {
+                    result += escape(word);
+                }
+                i = j;
+            }
+            // Other characters
+            else {
+                result += escape(line[i]);
+                i++;
+            }
+        }
+
+        return `<div class="code-line"><span class="line-number">${lineNum + 1}</span><span class="line-content">${result || ' '}</span></div>`;
+    }).join('');
+}
+
+// Tab switching
+let currentTab = 'preview';
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.content-panel').forEach(p => p.classList.toggle('active', p.id === tab + 'Panel'));
+}
+
+// Load tab content
+async function loadPlan() {
+    try {
+        const res = await fetch('/plan.md');
+        if (res.ok) {
+            const md = await res.text();
+            $('planContent').innerHTML = parseMarkdown(md);
+        }
+    } catch {}
+}
+
+async function loadCode() {
+    try {
+        const res = await fetch('/cscript.py');
+        if (res.ok) {
+            const code = await res.text();
+            $('codeContent').innerHTML = '<pre>' + highlightPython(code) + '</pre>';
+        }
+    } catch {}
 }
 
 function updateUI() {
@@ -327,6 +555,15 @@ async function downloadVideo(quality) {
 async function init() {
     chapters = await (await fetch('/chapters.json')).json();
     try { const res = await fetch('/subtitles.srt'); if (res.ok) subtitles = parseSRT(await res.text()); } catch {}
+
+    // Load tab content
+    loadPlan();
+    loadCode();
+
+    // Tab switching
+    document.querySelectorAll('.content-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
 
     $('chapterDropdown').innerHTML = chapters.map(c => `<div class="chapter-item" data-t="${c.start}"><span class="ch-name">${c.name}</span><span class="ch-time">${fmt(c.start)}</span></div>`).join('');
     $('progressTrack').innerHTML = chapters.map((c, i) => `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`).join('');

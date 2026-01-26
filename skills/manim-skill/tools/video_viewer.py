@@ -43,6 +43,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "/subtitles.srt": lambda: self.serve_subtitles(),
             "/download": lambda: self.handle_download(query),
             "/download/status": lambda: self.send_json(Handler.progress),
+            "/plan.md": lambda: self.serve_text_file(self.ctx.get("plan"), "text/markdown"),
+            "/cscript.py": lambda: self.serve_text_file(self.ctx.get("script_content"), "text/x-python"),
         }
 
         if path in routes:
@@ -101,6 +103,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Length", len(srt))
             self.end_headers()
             self.wfile.write(srt)
+        else:
+            self.send_error(404)
+
+    def serve_text_file(self, content, ctype):
+        if content:
+            body = content.encode() if isinstance(content, str) else content
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", len(body))
+            self.end_headers()
+            self.wfile.write(body)
         else:
             self.send_error(404)
 
@@ -206,6 +219,7 @@ def main():
     p.add_argument("--port", type=int, default=0)
     p.add_argument("--srt")
     p.add_argument("--script")
+    p.add_argument("--plan", help="plan.md file path")
     args = p.parse_args()
 
     if not os.path.exists(args.video):
@@ -231,12 +245,24 @@ def main():
         # Load explicit SRT or auto-generate from scene SRTs
         srt_content = Path(args.srt).read_bytes() if args.srt else concatenate_srts(scenes).encode()
 
+        # Load plan.md content
+        plan_content = None
+        if args.plan and os.path.exists(args.plan):
+            plan_content = Path(args.plan).read_text()
+
+        # Load script content
+        script_content = None
+        if args.script and os.path.exists(args.script):
+            script_content = Path(args.script).read_text()
+
         ctx = {
             "video": os.path.abspath(args.video),
             "chapters": chapters,
             "temp": temp,
             "srt": srt_content or None,
             "script": os.path.abspath(args.script) if args.script else None,
+            "script_content": script_content,
+            "plan": plan_content,
             "scenes": [scene_name(s) for s in scenes if os.path.exists(s)]
         }
 
