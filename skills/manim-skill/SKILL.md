@@ -101,8 +101,9 @@ Before writing any Manim code, wrtie `plan.md`:
 
 ### Phase 2: Code
 
+**BEFORE writing any code, you MUST invoke the `manimce-best-practices` skill using the Skill tool to load the coding guidelines.**
+
 Write Manim Community Edition code in `script.py`.
-**CRITICAL**: Follow the best practise in manimce-best-practices skills.
 
 #### Code Structure
 1. **One class per scene** - Name scenes descriptively: `Scene1_Introduction`, `Scene2_DerivePDE`
@@ -112,18 +113,6 @@ Write Manim Community Edition code in `script.py`.
 
 ```python
 from manim import *
-
-# example palette
-BACKGROUND = "#0D1117"
-BLUE = "#1E88E5"
-YELLOW = "#FFC107"
-GREEN = "#43A047"
-RED = "#E53935"
-PURPLE = "#8E44AD"
-WHITE = "#FFFFFF"
-GREY = "#CCCCCC"
-
-config.background_color = BACKGROUND
 
 ## Scene1_Introduction
 class Scene1_Introduction(Scene):
