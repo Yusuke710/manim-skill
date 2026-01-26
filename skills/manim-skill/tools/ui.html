@@ -5,17 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manim Video Viewer</title>
     <style>
+        :root {
+            --bg-dark: #0f0f0f;
+            --bg-surface: #212121;
+            --bg-hover: #3f3f3f;
+            --bg-active: #4f4f4f;
+            --accent: #1E88E5;
+            --accent-hover: #1976D2;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-menu: 0 4px 16px rgba(0,0,0,0.5);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: "Roboto", Arial, sans-serif; background: #0f0f0f; color: #fff; height: 100vh; overflow: hidden; }
+        body { font-family: "Roboto", Arial, sans-serif; background: var(--bg-dark); color: var(--text-primary); height: 100vh; overflow: hidden; }
         .container { display: flex; height: 100vh; gap: 12px; padding: 24px; }
         .video-section { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
-        .video-wrapper { flex: 1; background: #000; border-radius: 12px 12px 0 0; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+        .video-wrapper { flex: 1; background: #000; border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; display: flex; flex-direction: column; position: relative; }
         .preview-panel video { flex: 1; width: 100%; object-fit: contain; cursor: pointer; }
         .preview-panel { position: relative; }
 
+        /* Base button */
+        .btn { background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); }
+        .btn:hover { background: rgba(255,255,255,0.1); }
+        .btn-primary { background: var(--accent); color: var(--text-primary); }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-cancel { background: var(--bg-hover); color: var(--text-primary); }
+        .btn-cancel:hover { background: var(--bg-active); }
+
         /* Progress bar */
         .progress-bar { position: absolute; bottom: 40px; left: 12px; right: 12px; height: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; }
-        .progress-track { width: 100%; height: 3px; background: #0f0f0f; display: flex; gap: 3px; border-radius: 2px; overflow: hidden; transition: height 0.1s; }
+        .progress-track { width: 100%; height: 3px; background: var(--bg-dark); display: flex; gap: 3px; border-radius: 2px; overflow: hidden; transition: height 0.1s; }
         .progress-bar:hover .progress-track { height: 5px; }
         .chapter-segment { height: 100%; background: rgba(255,255,255,0.3); }
         .chapter-segment-fill { height: 100%; background: #f00; width: 0; }
@@ -25,85 +47,79 @@
         /* Controls */
         .controls { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); position: absolute; bottom: 0; left: 0; right: 0; }
         .preview-panel.active ~ .controls { display: flex; }
-        .play-btn, .ctrl-btn { background: transparent; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .play-btn { width: 40px; height: 40px; border-radius: 50%; }
-        .ctrl-btn { width: 36px; height: 36px; border-radius: 4px; }
-        .play-btn:hover, .ctrl-btn:hover { background: rgba(255,255,255,0.1); }
-        .play-btn svg, .ctrl-btn svg { width: 24px; height: 24px; fill: #fff; }
+        .ctrl-btn { width: 36px; height: 36px; }
+        .play-btn svg, .ctrl-btn svg { fill: var(--text-primary); }
+        .play-btn svg { width: 24px; height: 24px; }
         .ctrl-btn svg { width: 20px; height: 20px; }
         .ctrl-btn.active { background: rgba(255,255,255,0.2); }
         .time { font-size: 13px; margin-left: 4px; }
-        .time .sep { color: #aaa; margin: 0 4px; }
+        .time .sep { color: var(--text-secondary); margin: 0 4px; }
         .spacer { flex: 1; }
 
         /* Subtitle overlay */
         .subtitle-overlay { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; max-width: 80%; z-index: 5; }
-        .subtitle-text { background: rgba(0,0,0,0.75); color: #fff; padding: 6px 16px; border-radius: 4px; display: inline-block; font-family: Arial, sans-serif; line-height: 1.4; }
+        .subtitle-text { background: rgba(0,0,0,0.75); color: var(--text-primary); padding: 6px 16px; border-radius: var(--radius-sm); display: inline-block; font-family: Arial, sans-serif; line-height: 1.4; }
         .subtitle-text:empty { display: none; }
         .subtitle-text.size-small { font-size: 16px; }
         .subtitle-text.size-medium { font-size: 24px; }
         .subtitle-text.size-large { font-size: 36px; }
 
-        /* Dropdown menus */
+        /* Menu surface (shared for dropdown, submenu, chapter-dropdown) */
+        .menu-surface { position: absolute; background: var(--bg-surface); border-radius: var(--radius-md); padding: 8px 0; display: none; box-shadow: var(--shadow-menu); z-index: 20; }
+        .menu-surface.open { display: block; }
         .menu-wrap { position: relative; }
-        .dropdown-menu { position: absolute; bottom: 100%; right: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 140px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); margin-bottom: 8px; z-index: 20; }
-        .dropdown-menu.open { display: block; }
+        .dropdown-menu { bottom: 100%; right: 0; min-width: 140px; margin-bottom: 8px; }
         .dropdown-menu.settings { min-width: 180px; }
         .menu-opt { padding: 8px 16px; cursor: pointer; font-size: 14px; display: flex; align-items: center; }
         .menu-opt:hover { background: rgba(255,255,255,0.1); }
         .menu-opt .check { width: 20px; margin-right: 4px; opacity: 0; }
         .menu-opt.active .check { opacity: 1; }
-        .menu-opt .arrow { margin-left: auto; font-size: 12px; color: #aaa; }
-        .menu-divider { height: 1px; background: #3f3f3f; margin: 8px 0; }
-        .submenu { position: absolute; left: -100%; bottom: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 140px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
-        .submenu.open { display: block; }
+        .menu-opt .arrow { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
+        .menu-divider { height: 1px; background: var(--bg-hover); margin: 8px 0; }
+        .submenu { left: -100%; bottom: 0; min-width: 140px; }
 
         /* Download modal */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; }
         .modal-overlay.open { display: flex; }
-        .modal { background: #212121; border-radius: 12px; padding: 24px; min-width: 320px; }
+        .modal { background: var(--bg-surface); border-radius: var(--radius-lg); padding: 24px; min-width: 320px; }
         .modal h3 { font-size: 18px; margin-bottom: 16px; }
         .modal-opts { display: flex; flex-direction: column; gap: 8px; }
-        .modal-opt { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #2a2a2a; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
-        .modal-opt:hover { border-color: #3f3f3f; }
-        .modal-opt.selected { border-color: #1E88E5; }
+        .modal-opt { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #2a2a2a; border-radius: var(--radius-md); cursor: pointer; border: 2px solid transparent; }
+        .modal-opt:hover { border-color: var(--bg-hover); }
+        .modal-opt.selected { border-color: var(--accent); }
         .modal-opt .info { flex: 1; }
         .modal-opt .label { font-size: 14px; font-weight: 500; }
-        .modal-opt .desc { font-size: 12px; color: #aaa; margin-top: 2px; }
+        .modal-opt .desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
         .modal-opt .radio { width: 18px; height: 18px; border: 2px solid #666; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .modal-opt.selected .radio { border-color: #1E88E5; }
-        .modal-opt.selected .radio::after { content: ''; width: 10px; height: 10px; background: #1E88E5; border-radius: 50%; }
+        .modal-opt.selected .radio { border-color: var(--accent); }
+        .modal-opt.selected .radio::after { content: ''; width: 10px; height: 10px; background: var(--accent); border-radius: 50%; }
         .modal-btns { display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end; }
         .modal-btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; }
-        .modal-btn.cancel { background: #3f3f3f; color: #fff; }
-        .modal-btn.cancel:hover { background: #4f4f4f; }
-        .modal-btn.primary { background: #1E88E5; color: #fff; }
-        .modal-btn.primary:hover { background: #1976D2; }
         .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .modal-progress { margin-top: 16px; display: none; }
         .modal-progress.show { display: block; }
-        .modal-progress .bar { height: 4px; background: #3f3f3f; border-radius: 2px; overflow: hidden; }
-        .modal-progress .fill { height: 100%; background: #1E88E5; width: 0; transition: width 0.3s; }
-        .modal-progress .status { font-size: 12px; color: #aaa; margin-top: 8px; }
+        .modal-progress .bar { height: 4px; background: var(--bg-hover); border-radius: 2px; overflow: hidden; }
+        .modal-progress .fill { height: 100%; background: var(--accent); width: 0; transition: width 0.3s; }
+        .modal-progress .status { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
 
         /* Chapter dropdown */
         .chapter-dropdown-container { position: relative; }
         .scene-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; cursor: pointer; }
-        .scene-name:hover { color: #aaa; }
+        .scene-name:hover { color: var(--text-secondary); }
         .scene-name::after { content: ' ▼'; font-size: 10px; }
-        .chapter-dropdown { position: absolute; bottom: 100%; left: 0; background: #212121; border-radius: 8px; padding: 8px 0; min-width: 260px; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); margin-bottom: 8px; z-index: 20; max-height: 300px; overflow-y: auto; }
-        .chapter-dropdown.open { display: block; }
+        .chapter-dropdown { bottom: 100%; left: 0; min-width: 260px; margin-bottom: 8px; max-height: 300px; overflow-y: auto; }
         .chapter-dropdown::-webkit-scrollbar { width: 8px; }
-        .chapter-dropdown::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 4px; }
+        .chapter-dropdown::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: var(--radius-sm); }
         .chapter-item { padding: 10px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
         .chapter-item:hover { background: rgba(255,255,255,0.1); }
         .chapter-item.active { background: rgba(255,255,255,0.15); }
         .chapter-item .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-        .chapter-item .ch-time { color: #aaa; font-size: 12px; margin-left: 12px; }
+        .chapter-item .ch-time { color: var(--text-secondary); font-size: 12px; margin-left: 12px; }
 
         /* Resizer */
         .resizer { width: 6px; background: transparent; cursor: col-resize; position: relative; flex-shrink: 0; margin: 0 -3px; z-index: 10; }
-        .resizer::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 40px; background: #3f3f3f; border-radius: 2px; opacity: 0; transition: opacity 0.2s; }
+        .resizer::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 40px; background: var(--bg-hover); border-radius: 2px; opacity: 0; transition: opacity 0.2s; }
         .resizer:hover::after, .resizer.active::after { opacity: 1; }
         .resizer:hover, .resizer.active { background: rgba(30, 136, 229, 0.2); }
         body.resizing { cursor: col-resize; user-select: none; }
@@ -113,27 +129,27 @@
         .content-tabs { display: flex; gap: 8px; padding: 8px 16px; background: #1a1a1a; }
         .content-tab { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; background: transparent; color: #9CA3AF; transition: all 0.15s; }
         .content-tab:hover { color: #d1d5db; }
-        .content-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+        .content-tab.active { background: rgba(255,255,255,0.1); color: var(--text-primary); }
 
         /* Content panels */
-        .content-panel { display: none; flex: 1; overflow: auto; background: #0f0f0f; position: relative; }
+        .content-panel { display: none; flex: 1; overflow: auto; background: var(--bg-dark); position: relative; }
         .content-panel.active { display: flex; flex-direction: column; }
         .content-panel.plan-panel, .content-panel.code-panel { background: #121212; }
         .content-panel.preview-panel { background: #000; }
 
         /* Plan panel (markdown) */
         .plan-content { padding: 24px; color: #e5e7eb; line-height: 1.7; font-size: 15px; }
-        .plan-content h1 { font-size: 24px; font-weight: 600; margin: 0 0 16px; color: #fff; border-bottom: 1px solid #333; padding-bottom: 8px; }
-        .plan-content h2 { font-size: 20px; font-weight: 600; margin: 24px 0 12px; color: #fff; }
-        .plan-content h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; color: #fff; }
+        .plan-content h1 { font-size: 24px; font-weight: 600; margin: 0 0 16px; color: var(--text-primary); border-bottom: 1px solid #333; padding-bottom: 8px; }
+        .plan-content h2 { font-size: 20px; font-weight: 600; margin: 24px 0 12px; color: var(--text-primary); }
+        .plan-content h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; color: var(--text-primary); }
         .plan-content p { margin: 0 0 12px; }
         .plan-content ul, .plan-content ol { margin: 0 0 12px; padding-left: 24px; }
         .plan-content li { margin: 4px 0; }
-        .plan-content code { background: #272727; padding: 2px 6px; border-radius: 4px; font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; }
-        .plan-content pre { background: #1e1e1e; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 0 0 16px; }
+        .plan-content code { background: #272727; padding: 2px 6px; border-radius: var(--radius-sm); font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; }
+        .plan-content pre { background: #1e1e1e; padding: 16px; border-radius: var(--radius-md); overflow-x: auto; margin: 0 0 16px; }
         .plan-content pre code { background: transparent; padding: 0; }
-        .plan-content blockquote { border-left: 3px solid #3f3f3f; padding-left: 16px; margin: 0 0 12px; color: #9ca3af; }
-        .plan-content strong { color: #fff; }
+        .plan-content blockquote { border-left: 3px solid var(--bg-hover); padding-left: 16px; margin: 0 0 12px; color: #9ca3af; }
+        .plan-content strong { color: var(--text-primary); }
         .plan-content a { color: #60a5fa; text-decoration: none; }
         .plan-content a:hover { text-decoration: underline; }
         .plan-content hr { border: none; border-top: 1px solid #333; margin: 24px 0; }
@@ -145,7 +161,6 @@
         .code-line:hover { background: rgba(255,255,255,0.03); }
         .line-number { color: #6e7681; text-align: right; padding-right: 16px; min-width: 50px; user-select: none; }
         .line-content { flex: 1; white-space: pre; }
-        /* Basic syntax highlighting */
         .hl-keyword { color: #c586c0; }
         .hl-string { color: #ce9178; }
         .hl-comment { color: #6a9955; }
@@ -160,28 +175,28 @@
         .empty-state svg { width: 48px; height: 48px; fill: #4b5563; margin-bottom: 16px; }
         .empty-state p { font-size: 14px; }
 
-        /* Feedback panel - chat style */
-        .feedback-panel { width: 320px; min-width: 200px; max-width: 600px; display: flex; flex-direction: column; overflow: hidden; background: #181818; border-radius: 12px; padding: 16px; }
-        .feedback-textarea { flex: 1; background: #272727; border: none; color: #fff; padding: 12px; border-radius: 8px; font-size: 14px; font-family: inherit; line-height: 1.6; outline: none; resize: none; }
-        .feedback-textarea:focus { box-shadow: 0 0 0 2px #1E88E5; }
+        /* Feedback panel */
+        .feedback-panel { width: 320px; min-width: 200px; max-width: 600px; display: flex; flex-direction: column; overflow: hidden; background: #181818; border-radius: var(--radius-lg); padding: 16px; }
+        .feedback-textarea { flex: 1; background: #272727; border: none; color: var(--text-primary); padding: 12px; border-radius: var(--radius-md); font-size: 14px; font-family: inherit; line-height: 1.6; outline: none; resize: none; }
+        .feedback-textarea:focus { box-shadow: 0 0 0 2px var(--accent); }
         .feedback-textarea::placeholder { color: #666; }
         .feedback-actions { display: flex; gap: 8px; margin-top: 12px; }
         .feedback-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
-        .feedback-btn.copy { background: #1E88E5; color: #fff; }
-        .feedback-btn.copy:hover { background: #1976D2; }
-        .shortcuts { font-size: 12px; color: #aaa; padding: 12px 0; border-top: 1px solid #3f3f3f; margin-top: 12px; }
+        .feedback-btn.copy { background: var(--accent); color: var(--text-primary); }
+        .feedback-btn.copy:hover { background: var(--accent-hover); }
+        .shortcuts { font-size: 12px; color: var(--text-secondary); padding: 12px 0; border-top: 1px solid var(--bg-hover); margin-top: 12px; }
+        .shortcuts kbd { background: #272727; padding: 3px 8px; border-radius: var(--radius-sm); font-family: inherit; font-size: 11px; margin-right: 4px; }
 
         /* Action buttons below video */
-        .video-actions { display: flex; gap: 8px; padding: 12px 16px; background: #181818; border-radius: 0 0 12px 12px; flex-wrap: wrap; align-items: center; }
-        .action-btn { display: flex; align-items: center; gap: 6px; background: #272727; border: none; color: #fff; padding: 8px 14px; border-radius: 18px; cursor: pointer; font-size: 13px; font-weight: 500; }
-        .action-btn:hover { background: #3f3f3f; }
+        .video-actions { display: flex; gap: 8px; padding: 12px 16px; background: #181818; border-radius: 0 0 var(--radius-lg) var(--radius-lg); flex-wrap: wrap; align-items: center; }
+        .action-btn { display: flex; align-items: center; gap: 6px; background: #272727; border: none; color: var(--text-primary); padding: 8px 14px; border-radius: 18px; cursor: pointer; font-size: 13px; font-weight: 500; }
+        .action-btn:hover { background: var(--bg-hover); }
         .action-btn svg { width: 16px; height: 16px; fill: currentColor; }
         .action-btn.add-btn { padding: 8px 12px; font-size: 16px; }
         #customButtons { display: contents; }
         .custom-btn-wrap { position: relative; }
-        .custom-btn-wrap .remove-btn { display: none; position: absolute; right: -4px; top: -4px; width: 16px; height: 16px; background: #f44; border: none; border-radius: 50%; color: #fff; font-size: 10px; cursor: pointer; align-items: center; justify-content: center; }
+        .custom-btn-wrap .remove-btn { display: none; position: absolute; right: -4px; top: -4px; width: 16px; height: 16px; background: #f44; border: none; border-radius: 50%; color: var(--text-primary); font-size: 10px; cursor: pointer; align-items: center; justify-content: center; }
         .custom-btn-wrap:hover .remove-btn { display: flex; }
-        .shortcuts kbd { background: #272727; padding: 3px 8px; border-radius: 4px; font-family: inherit; font-size: 11px; margin-right: 4px; }
     </style>
 </head>
 <body>
@@ -196,14 +211,11 @@
         <div class="resizer" id="resizer"></div>
         <div class="video-section">
             <div class="video-wrapper">
-                <!-- Content tabs -->
                 <div class="content-tabs">
                     <button class="content-tab" data-tab="plan">Plan</button>
                     <button class="content-tab" data-tab="code">Code</button>
                     <button class="content-tab active" data-tab="preview">Preview</button>
                 </div>
-
-                <!-- Plan panel -->
                 <div class="content-panel plan-panel" id="planPanel">
                     <div class="plan-content" id="planContent">
                         <div class="empty-state">
@@ -212,8 +224,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Code panel -->
                 <div class="content-panel code-panel" id="codePanel">
                     <div class="code-content" id="codeContent">
                         <div class="empty-state">
@@ -222,8 +232,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Preview panel (video) -->
                 <div class="content-panel preview-panel active" id="previewPanel">
                     <video id="video" src="/video.mp4"></video>
                     <div class="subtitle-overlay"><div class="subtitle-text size-medium" id="subtitleText"></div></div>
@@ -232,9 +240,8 @@
                         <div class="progress-dot" id="progressDot"></div>
                     </div>
                 </div>
-
                 <div class="controls">
-                    <button class="play-btn" id="playBtn">
+                    <button class="btn play-btn" id="playBtn">
                         <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         <svg id="pauseIcon" viewBox="0 0 24 24" hidden><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                         <svg id="replayIcon" viewBox="0 0 24 24" hidden><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
@@ -242,29 +249,29 @@
                     <div class="time"><span id="curTime">0:00</span><span class="sep">/</span><span id="durTime">0:00</span></div>
                     <div class="chapter-dropdown-container">
                         <div class="scene-name" id="sceneName">-</div>
-                        <div class="chapter-dropdown" id="chapterDropdown"></div>
+                        <div class="menu-surface chapter-dropdown" id="chapterDropdown"></div>
                     </div>
                     <div class="spacer"></div>
-                    <button class="ctrl-btn" id="ccBtn" title="Subtitles" hidden>
+                    <button class="btn ctrl-btn" id="ccBtn" title="Subtitles" hidden>
                         <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
                     </button>
                     <div class="menu-wrap">
-                        <button class="ctrl-btn" id="settingsBtn" title="Settings">
+                        <button class="btn ctrl-btn" id="settingsBtn" title="Settings">
                             <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
                         </button>
-                        <div class="dropdown-menu settings" id="settingsMenu">
+                        <div class="menu-surface dropdown-menu settings" id="settingsMenu">
                             <div class="menu-opt" data-submenu="fontSizeMenu"><span>Subtitle size</span><span class="arrow">›</span></div>
-                            <div class="submenu" id="fontSizeMenu">
+                            <div class="menu-surface submenu" id="fontSizeMenu">
                                 <div class="menu-opt" data-size="small"><span class="check">✓</span>Small</div>
                                 <div class="menu-opt active" data-size="medium"><span class="check">✓</span>Medium</div>
                                 <div class="menu-opt" data-size="large"><span class="check">✓</span>Large</div>
                             </div>
                             <div class="menu-divider"></div>
                             <div class="menu-opt" data-submenu="speedMenu"><span>Playback speed</span><span class="arrow">›</span></div>
-                            <div class="submenu" id="speedMenu"></div>
+                            <div class="menu-surface submenu" id="speedMenu"></div>
                         </div>
                     </div>
-                    <button class="ctrl-btn" id="downloadBtn" title="Download">
+                    <button class="btn ctrl-btn" id="downloadBtn" title="Download">
                         <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                     </button>
                 </div>
@@ -297,22 +304,58 @@
                 <div class="status" id="progressStatus">Preparing...</div>
             </div>
             <div class="modal-btns">
-                <button class="modal-btn cancel" id="downloadCancel">Cancel</button>
-                <button class="modal-btn primary" id="downloadConfirm">Download</button>
+                <button class="modal-btn btn-cancel" id="downloadCancel">Cancel</button>
+                <button class="modal-btn btn-primary" id="downloadConfirm">Download</button>
             </div>
         </div>
     </div>
 <script>
 const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
 const video = $('video'), progressBar = $('progressBar'), settingsMenu = $('settingsMenu'), downloadModal = $('downloadModal');
 
 let chapters = [], subtitles = [];
-let ended = false, dragging = false, subtitlesOn = false;
+let ended = false, subtitlesOn = false;
+
+// Cached DOM elements
+const els = {
+    curTime: $('curTime'), durTime: $('durTime'), sceneName: $('sceneName'),
+    playIcon: $('playIcon'), pauseIcon: $('pauseIcon'), replayIcon: $('replayIcon'),
+    progressDot: $('progressDot'), subtitleText: $('subtitleText')
+};
 
 const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
 const getChapter = t => chapters.findLast(c => t >= c.start) || chapters[0];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const seekBy = delta => { video.currentTime = clamp(video.currentTime + delta, 0, video.duration); ended = false; updateUI(); };
+
+// Unified drag handler
+const makeDraggable = (trigger, onDrag, onEnd = null, activeClass = 'dragging') => {
+    let active = false;
+    trigger.addEventListener('mousedown', e => { active = true; trigger.classList.add(activeClass); onDrag(e); e.preventDefault(); });
+    document.addEventListener('mousemove', e => active && onDrag(e));
+    document.addEventListener('mouseup', () => { if (active) { active = false; trigger.classList.remove(activeClass); onEnd?.(); } });
+};
+
+// Menu selection helper
+const selectOption = (container, selector, activeClass, onSelect) => {
+    container.addEventListener('click', e => {
+        const opt = e.target.closest(selector);
+        if (!opt) return;
+        container.querySelectorAll(selector).forEach(o => o.classList.remove(activeClass));
+        opt.classList.add(activeClass);
+        onSelect(opt);
+    });
+};
+
+// Generic text loader
+const loadText = async (url, container, transform) => {
+    try {
+        const res = await fetch(url);
+        if (res.ok) container.innerHTML = transform(await res.text());
+    } catch (e) { console.error(e); }
+};
 
 function parseSRT(text) {
     return text.trim().split(/\n\n+/).map(block => {
@@ -322,33 +365,21 @@ function parseSRT(text) {
     }).filter(Boolean);
 }
 
-// Simple markdown parser
 function parseMarkdown(md) {
-    const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    let html = escape(md);
-    // Code blocks
+    let html = esc(md);
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => `<pre><code>${code.trim()}</code></pre>`);
-    // Inline code
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    // Headers
     html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
     html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-    // Bold and italic
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-    // Horizontal rule
     html = html.replace(/^---$/gm, '<hr>');
-    // Lists
     html = html.replace(/^(\s*)[-*] (.+)$/gm, '$1<li>$2</li>');
     html = html.replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>');
-    // Numbered lists
     html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-    // Blockquotes
     html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-    // Paragraphs
     html = html.split('\n\n').map(p => {
         p = p.trim();
         if (!p || p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<ol') || p.startsWith('<pre') || p.startsWith('<blockquote') || p.startsWith('<hr')) return p;
@@ -357,137 +388,81 @@ function parseMarkdown(md) {
     return html;
 }
 
-// Python syntax highlighter - tokenizer approach to avoid nested replacements
 function highlightPython(code) {
     const keywords = new Set(['def', 'class', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'finally', 'with', 'as', 'import', 'from', 'return', 'yield', 'raise', 'pass', 'break', 'continue', 'and', 'or', 'not', 'in', 'is', 'lambda', 'True', 'False', 'None', 'self', 'async', 'await']);
     const builtins = new Set(['print', 'range', 'len', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'super', 'isinstance', 'type', 'open', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'reversed', 'min', 'max', 'sum', 'abs', 'any', 'all']);
 
-    const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    const lines = code.split('\n');
-    return lines.map((line, lineNum) => {
-        let result = '';
-        let i = 0;
-
+    return code.split('\n').map((line, lineNum) => {
+        let result = '', i = 0;
         while (i < line.length) {
-            // Check for triple-quoted strings first
             if (line.slice(i, i + 3) === '"""' || line.slice(i, i + 3) === "'''") {
                 const quote = line.slice(i, i + 3);
                 let end = line.indexOf(quote, i + 3);
                 if (end === -1) end = line.length - 3;
-                const str = line.slice(i, end + 3);
-                result += `<span class="hl-string">${escape(str)}</span>`;
+                result += `<span class="hl-string">${esc(line.slice(i, end + 3))}</span>`;
                 i = end + 3;
-            }
-            // Check for strings
-            else if (line[i] === '"' || line[i] === "'") {
+            } else if (line[i] === '"' || line[i] === "'") {
                 const quote = line[i];
                 let j = i + 1;
                 while (j < line.length && (line[j] !== quote || line[j - 1] === '\\')) j++;
-                const str = line.slice(i, j + 1);
-                result += `<span class="hl-string">${escape(str)}</span>`;
+                result += `<span class="hl-string">${esc(line.slice(i, j + 1))}</span>`;
                 i = j + 1;
-            }
-            // Check for comments
-            else if (line[i] === '#') {
-                result += `<span class="hl-comment">${escape(line.slice(i))}</span>`;
+            } else if (line[i] === '#') {
+                result += `<span class="hl-comment">${esc(line.slice(i))}</span>`;
                 break;
-            }
-            // Check for decorators
-            else if (line[i] === '@' && /\w/.test(line[i + 1] || '')) {
+            } else if (line[i] === '@' && /\w/.test(line[i + 1] || '')) {
                 let j = i + 1;
                 while (j < line.length && /\w/.test(line[j])) j++;
-                result += `<span class="hl-decorator">${escape(line.slice(i, j))}</span>`;
+                result += `<span class="hl-decorator">${esc(line.slice(i, j))}</span>`;
                 i = j;
-            }
-            // Check for numbers
-            else if (/\d/.test(line[i]) && (i === 0 || !/\w/.test(line[i - 1]))) {
+            } else if (/\d/.test(line[i]) && (i === 0 || !/\w/.test(line[i - 1]))) {
                 let j = i;
                 while (j < line.length && /[\d.]/.test(line[j])) j++;
-                result += `<span class="hl-number">${escape(line.slice(i, j))}</span>`;
+                result += `<span class="hl-number">${esc(line.slice(i, j))}</span>`;
                 i = j;
-            }
-            // Check for words (identifiers, keywords)
-            else if (/[a-zA-Z_]/.test(line[i])) {
+            } else if (/[a-zA-Z_]/.test(line[i])) {
                 let j = i;
                 while (j < line.length && /\w/.test(line[j])) j++;
-                const word = line.slice(i, j);
-                const nextChar = line[j] || '';
-                if (keywords.has(word)) {
-                    result += `<span class="hl-keyword">${escape(word)}</span>`;
-                } else if (builtins.has(word) && nextChar === '(') {
-                    result += `<span class="hl-builtin">${escape(word)}</span>`;
-                } else if (i >= 4 && line.slice(i - 4, i) === 'def ') {
-                    result += `<span class="hl-function">${escape(word)}</span>`;
-                } else if (i >= 6 && line.slice(i - 6, i) === 'class ') {
-                    result += `<span class="hl-class">${escape(word)}</span>`;
-                } else {
-                    result += escape(word);
-                }
+                const word = line.slice(i, j), nextChar = line[j] || '';
+                if (keywords.has(word)) result += `<span class="hl-keyword">${esc(word)}</span>`;
+                else if (builtins.has(word) && nextChar === '(') result += `<span class="hl-builtin">${esc(word)}</span>`;
+                else if (i >= 4 && line.slice(i - 4, i) === 'def ') result += `<span class="hl-function">${esc(word)}</span>`;
+                else if (i >= 6 && line.slice(i - 6, i) === 'class ') result += `<span class="hl-class">${esc(word)}</span>`;
+                else result += esc(word);
                 i = j;
-            }
-            // Other characters
-            else {
-                result += escape(line[i]);
+            } else {
+                result += esc(line[i]);
                 i++;
             }
         }
-
         return `<div class="code-line"><span class="line-number">${lineNum + 1}</span><span class="line-content">${result || ' '}</span></div>`;
     }).join('');
 }
 
-// Tab switching
-let currentTab = 'preview';
 function switchTab(tab) {
-    currentTab = tab;
     document.querySelectorAll('.content-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     document.querySelectorAll('.content-panel').forEach(p => p.classList.toggle('active', p.id === tab + 'Panel'));
 }
 
-// Load tab content
-async function loadPlan() {
-    try {
-        const res = await fetch('/plan.md');
-        if (res.ok) {
-            const md = await res.text();
-            $('planContent').innerHTML = parseMarkdown(md);
-        }
-    } catch {}
-}
-
-async function loadCode() {
-    try {
-        const res = await fetch('/cscript.py');
-        if (res.ok) {
-            const code = await res.text();
-            $('codeContent').innerHTML = '<pre>' + highlightPython(code) + '</pre>';
-        }
-    } catch {}
-}
-
 function updateUI() {
     const t = video.currentTime, d = video.duration || 1, ch = getChapter(t);
-    $('curTime').textContent = fmt(t);
-    $('durTime').textContent = fmt(d);
-    $('sceneName').textContent = ch?.name || '-';
+    els.curTime.textContent = fmt(t);
+    els.durTime.textContent = fmt(d);
+    els.sceneName.textContent = ch?.name || '-';
     document.querySelectorAll('.chapter-item').forEach((el, i) => el.classList.toggle('active', i === ch?.index));
 
-    // Play button icon
-    $('playIcon').style.display = !ended && video.paused ? 'block' : 'none';
-    $('pauseIcon').style.display = !ended && !video.paused ? 'block' : 'none';
-    $('replayIcon').style.display = ended ? 'block' : 'none';
+    els.playIcon.style.display = !ended && video.paused ? 'block' : 'none';
+    els.pauseIcon.style.display = !ended && !video.paused ? 'block' : 'none';
+    els.replayIcon.style.display = ended ? 'block' : 'none';
 
-    // Progress bar
     chapters.forEach((c, i) => {
         const fill = document.querySelector(`.chapter-segment[data-i="${i}"] .chapter-segment-fill`);
         if (fill) fill.style.width = t >= c.start + c.duration ? '100%' : t > c.start ? `${(t - c.start) / c.duration * 100}%` : '0';
     });
-    $('progressDot').style.left = `calc(${t / d * 100}% - 6px)`;
+    els.progressDot.style.left = `calc(${t / d * 100}% - 6px)`;
 
-    // Subtitles
     const sub = subtitlesOn && subtitles.find(s => t >= s.start && t < s.end);
-    $('subtitleText').textContent = sub ? sub.text : '';
+    els.subtitleText.textContent = sub ? sub.text : '';
 }
 
 function insertText(str, newlineBefore = false) {
@@ -557,13 +532,11 @@ async function init() {
     try { const res = await fetch('/subtitles.srt'); if (res.ok) subtitles = parseSRT(await res.text()); } catch {}
 
     // Load tab content
-    loadPlan();
-    loadCode();
+    loadText('/plan.md', $('planContent'), parseMarkdown);
+    loadText('/cscript.py', $('codeContent'), code => '<pre>' + highlightPython(code) + '</pre>');
 
     // Tab switching
-    document.querySelectorAll('.content-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
+    document.querySelectorAll('.content-tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
 
     $('chapterDropdown').innerHTML = chapters.map(c => `<div class="chapter-item" data-t="${c.start}"><span class="ch-name">${c.name}</span><span class="ch-time">${fmt(c.start)}</span></div>`).join('');
     $('progressTrack').innerHTML = chapters.map((c, i) => `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`).join('');
@@ -575,14 +548,12 @@ async function init() {
     video.addEventListener('play', () => { ended = false; updateUI(); });
     video.addEventListener('pause', updateUI);
     video.addEventListener('ended', () => { ended = true; updateUI(); });
-    video.addEventListener('loadedmetadata', () => $('durTime').textContent = fmt(video.duration));
+    video.addEventListener('loadedmetadata', () => els.durTime.textContent = fmt(video.duration));
     video.addEventListener('click', togglePlay);
     $('playBtn').addEventListener('click', togglePlay);
 
     // Progress bar drag
-    progressBar.addEventListener('mousedown', e => { dragging = true; progressBar.classList.add('dragging'); seek(e); });
-    document.addEventListener('mousemove', e => dragging && seek(e));
-    document.addEventListener('mouseup', () => dragging && (dragging = false, progressBar.classList.remove('dragging')));
+    makeDraggable(progressBar, seek);
 
     // Document-level click handlers (close dropdowns)
     const closeMenus = () => settingsMenu.querySelectorAll('.open').forEach(el => el.classList.remove('open')) || settingsMenu.classList.remove('open');
@@ -633,46 +604,34 @@ async function init() {
     // Settings menu
     $('settingsBtn').addEventListener('click', e => { e.stopPropagation(); settingsMenu.classList.toggle('open'); });
     settingsMenu.addEventListener('mouseover', e => { const opt = e.target.closest('[data-submenu]'); if (opt) { settingsMenu.querySelectorAll('.submenu').forEach(s => s.classList.remove('open')); $(opt.dataset.submenu).classList.add('open'); } });
-    $('fontSizeMenu').addEventListener('click', e => { const opt = e.target.closest('[data-size]'); if (opt) { $('subtitleText').className = 'subtitle-text size-' + opt.dataset.size; $('fontSizeMenu').querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.size === opt.dataset.size)); closeMenus(); } });
-    $('speedMenu').addEventListener('click', e => { const opt = e.target.closest('[data-speed]'); if (opt) { video.playbackRate = +opt.dataset.speed; $('speedMenu').querySelectorAll('.menu-opt').forEach(el => el.classList.toggle('active', el.dataset.speed === opt.dataset.speed)); closeMenus(); } });
+
+    // Menu selections using helper
+    selectOption($('fontSizeMenu'), '[data-size]', 'active', opt => { els.subtitleText.className = 'subtitle-text size-' + opt.dataset.size; closeMenus(); });
+    selectOption($('speedMenu'), '[data-speed]', 'active', opt => { video.playbackRate = +opt.dataset.speed; closeMenus(); });
+    selectOption(downloadModal, '.modal-opt', 'selected', opt => selectedQuality = opt.dataset.quality);
 
     // Download modal
     let selectedQuality = 'low';
     $('downloadBtn').addEventListener('click', () => { downloadModal.classList.add('open'); $('downloadProgress').classList.remove('show'); $('downloadConfirm').disabled = false; });
     $('downloadCancel').addEventListener('click', () => downloadModal.classList.remove('open'));
     downloadModal.addEventListener('click', e => e.target === downloadModal && downloadModal.classList.remove('open'));
-    downloadModal.querySelectorAll('.modal-opt').forEach(opt => opt.addEventListener('click', () => { downloadModal.querySelectorAll('.modal-opt').forEach(o => o.classList.remove('selected')); opt.classList.add('selected'); selectedQuality = opt.dataset.quality; }));
     $('downloadConfirm').addEventListener('click', () => downloadVideo(selectedQuality));
 
     // Keyboard shortcuts
+    const seekLeft = () => seekBy(-5), seekRight = () => seekBy(5);
     document.addEventListener('keydown', e => {
         if (e.target.tagName === 'TEXTAREA' || downloadModal.classList.contains('open')) return;
-        const actions = { Space: togglePlay, KeyK: togglePlay, ArrowLeft: () => seekBy(-5), KeyJ: () => seekBy(-5), ArrowRight: () => seekBy(5), KeyL: () => seekBy(5), KeyC: () => subtitles.length && $('ccBtn').click(), KeyT: insertTimestamp };
+        const actions = { Space: togglePlay, KeyK: togglePlay, ArrowLeft: seekLeft, KeyJ: seekLeft, ArrowRight: seekRight, KeyL: seekRight, KeyC: () => subtitles.length && $('ccBtn').click(), KeyT: insertTimestamp };
         if (actions[e.code]) { e.preventDefault(); actions[e.code](); }
     });
 
     // Panel resizer
     const resizer = $('resizer'), feedbackPanel = document.querySelector('.feedback-panel');
-    let resizing = false;
-    resizer.addEventListener('mousedown', e => {
-        resizing = true;
-        resizer.classList.add('active');
-        document.body.classList.add('resizing');
-        e.preventDefault();
-    });
-    document.addEventListener('mousemove', e => {
-        if (!resizing) return;
+    makeDraggable(resizer, e => {
         const containerRect = document.querySelector('.container').getBoundingClientRect();
-        const newWidth = e.clientX - containerRect.left - 24; // 24px padding
-        feedbackPanel.style.width = clamp(newWidth, 200, 600) + 'px';
-    });
-    document.addEventListener('mouseup', () => {
-        if (resizing) {
-            resizing = false;
-            resizer.classList.remove('active');
-            document.body.classList.remove('resizing');
-        }
-    });
+        feedbackPanel.style.width = clamp(e.clientX - containerRect.left - 24, 200, 600) + 'px';
+    }, () => document.body.classList.remove('resizing'), 'active');
+    resizer.addEventListener('mousedown', () => document.body.classList.add('resizing'));
 
     updateUI();
 }
