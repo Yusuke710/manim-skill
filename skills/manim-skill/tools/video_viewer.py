@@ -3,7 +3,7 @@
 
 import argparse, http.server, json, os, re, shutil, socketserver, subprocess, sys, tempfile, threading, webbrowser
 from pathlib import Path
-from urllib.parse import unquote, parse_qs
+from urllib.parse import unquote, urlparse, parse_qs
 
 def get_duration(path):
     result = subprocess.run(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", path], capture_output=True, text=True)
@@ -18,7 +18,6 @@ def scene_name(path):
 def build_chapters(scenes, temp_dir):
     chapters, t = [], 0.0
     for i, path in enumerate(scenes):
-        if not os.path.exists(path): continue
         dur = get_duration(path)
         extract_thumb(path, f"{temp_dir}/thumb_{i}.jpg", dur * 0.25)
         chapters.append({"index": i, "name": scene_name(path), "start": t, "duration": dur})
@@ -33,40 +32,36 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*a, **kw)
 
     def do_GET(self):
-        path, query = unquote(self.path.split('?')[0]), parse_qs(self.path.split('?')[1]) if '?' in self.path else {}
+        parsed = urlparse(unquote(self.path))
+        path, query = parsed.path, parse_qs(parsed.query)
 
         routes = {
-            "/": lambda: self.send_html(Path(__file__).with_name("ui.html").read_text()),
-            "/index.html": lambda: self.send_html(Path(__file__).with_name("ui.html").read_text()),
+            "/": lambda: self.send_bytes(self.ctx["ui_html"], "text/html"),
+            "/index.html": lambda: self.send_bytes(self.ctx["ui_html"], "text/html"),
             "/video.mp4": lambda: self.send_file(self.ctx["video"], "video/mp4"),
-            "/chapters.json": lambda: self.send_json(self.ctx["chapters"]),
-            "/subtitles.srt": lambda: self.serve_subtitles(),
+            "/chapters.json": lambda: self.send_bytes(json.dumps(self.ctx["chapters"]).encode(), "application/json"),
+            "/subtitles.srt": lambda: self.send_bytes(self.ctx.get("srt"), "text/plain"),
             "/download": lambda: self.handle_download(query),
-            "/download/status": lambda: self.send_json(Handler.progress),
-            "/plan.md": lambda: self.serve_text_file(self.ctx.get("plan"), "text/markdown"),
-            "/cscript.py": lambda: self.serve_text_file(self.ctx.get("script_content"), "text/x-python"),
+            "/download/status": lambda: self.send_bytes(json.dumps(Handler.progress).encode(), "application/json"),
+            "/plan.md": lambda: self.send_bytes(self.ctx.get("plan"), "text/markdown"),
+            "/cscript.py": lambda: self.send_bytes(self.ctx.get("script_content"), "text/x-python"),
         }
 
         if path in routes:
             routes[path]()
-        elif path.startswith("/thumb_"):
+        elif re.match(r"^/thumb_\d+\.jpg$", path):
             thumb = f"{self.ctx['temp']}/{path[1:]}"
             self.send_file(thumb, "image/jpeg") if os.path.exists(thumb) else self.send_error(404)
         else:
             self.send_error(404)
 
-    def send_json(self, data):
-        body = json.dumps(data).encode()
+    def send_bytes(self, data, ctype):
+        if data is None:
+            self.send_error(404)
+            return
+        body = data.encode() if isinstance(data, str) else data
         self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", len(body))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def send_html(self, html):
-        body = html.encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", len(body))
         self.end_headers()
         self.wfile.write(body)
@@ -95,27 +90,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(f.read(end - start + 1))
         except (BrokenPipeError, ConnectionResetError):
             pass
-
-    def serve_subtitles(self):
-        if srt := self.ctx.get("srt"):
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.send_header("Content-Length", len(srt))
-            self.end_headers()
-            self.wfile.write(srt)
-        else:
-            self.send_error(404)
-
-    def serve_text_file(self, content, ctype):
-        if content:
-            body = content.encode() if isinstance(content, str) else content
-            self.send_response(200)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Content-Length", len(body))
-            self.end_headers()
-            self.wfile.write(body)
-        else:
-            self.send_error(404)
 
     def handle_download(self, query):
         quality = query.get("quality", ["low"])[0]
@@ -175,7 +149,7 @@ def find_port(start=8000, end=9000):
     for p in range(start, end):
         try:
             with socket.socket() as s:
-                s.bind(("", p))
+                s.bind(("127.0.0.1", p))
                 return p
         except OSError:
             pass
@@ -217,6 +191,7 @@ def main():
     p.add_argument("video")
     p.add_argument("--order", required=True, help="concat.txt with video file list")
     p.add_argument("--port", type=int, default=0)
+    p.add_argument("--host", default="127.0.0.1", help="Host to bind (default: 127.0.0.1)")
     p.add_argument("--srt")
     p.add_argument("--script")
     p.add_argument("--plan", help="plan.md file path")
@@ -227,7 +202,7 @@ def main():
     if not os.path.exists(args.order):
         sys.exit(f"Error: {args.order} not found")
 
-    scenes = parse_order_file(args.order)
+    scenes = [s for s in parse_order_file(args.order) if os.path.exists(s)]
     if not scenes:
         sys.exit("Error: No videos found in order file")
 
@@ -242,33 +217,21 @@ def main():
         chapters = build_chapters(scenes, temp)
         print(f"Found {len(chapters)} chapters")
 
-        # Load explicit SRT or auto-generate from scene SRTs
-        srt_content = Path(args.srt).read_bytes() if args.srt else concatenate_srts(scenes).encode()
-
-        # Load plan.md content
-        plan_content = None
-        if args.plan and os.path.exists(args.plan):
-            plan_content = Path(args.plan).read_text()
-
-        # Load script content
-        script_content = None
-        if args.script and os.path.exists(args.script):
-            script_content = Path(args.script).read_text()
-
         ctx = {
             "video": os.path.abspath(args.video),
             "chapters": chapters,
             "temp": temp,
-            "srt": srt_content or None,
+            "ui_html": Path(__file__).with_name("ui.html").read_text().encode(),
+            "srt": (Path(args.srt).read_bytes() if args.srt else concatenate_srts(scenes).encode()) or None,
             "script": os.path.abspath(args.script) if args.script else None,
-            "script_content": script_content,
-            "plan": plan_content,
-            "scenes": [scene_name(s) for s in scenes if os.path.exists(s)]
+            "script_content": Path(args.script).read_text().encode() if args.script and os.path.exists(args.script) else None,
+            "plan": Path(args.plan).read_text().encode() if args.plan and os.path.exists(args.plan) else None,
+            "scenes": [scene_name(s) for s in scenes]
         }
 
         handler = lambda *a, **kw: Handler(*a, ctx=ctx, **kw)
 
-        with socketserver.TCPServer(("", port), handler) as srv:
+        with socketserver.TCPServer((args.host, port), handler) as srv:
             url = f"http://localhost:{port}"
             print(f"Viewer: {url}")
             threading.Timer(0.5, lambda: webbrowser.open(url)).start()
