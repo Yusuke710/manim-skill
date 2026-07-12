@@ -5,161 +5,158 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manim Video Viewer</title>
     <style>
+        /* Manimate design tokens (src/app/globals.css) */
         :root {
-            --bg-dark: #0f0f0f;
-            --bg-surface: #212121;
-            --bg-hover: #3f3f3f;
-            --bg-active: #4f4f4f;
-            --accent: #1E88E5;
-            --accent-hover: #1976D2;
-            --text-primary: #fff;
-            --text-secondary: #aaa;
-            --radius-sm: 4px;
-            --radius-md: 8px;
-            --radius-lg: 12px;
-            --shadow-menu: 0 4px 16px rgba(0,0,0,0.5);
+            --bg-main:          #f8f8f7;
+            --bg-card:          #fafafa;
+            --bg-white:         #ffffff;
+            --bg-hover:         #f0f0ef;
+            --bg-active:        #e8e8e6;
+
+            --text-primary:     #34322d;
+            --text-secondary:   #5e5e5b;
+            --text-tertiary:    #858481;
+            --text-placeholder: #acacaa;
+
+            --border-main:      rgba(0,0,0,0.06);
+            --border-input:     rgba(0,0,0,0.12);
+
+            --accent:           #2BB5A0;
+            --accent-hover:     #239687;
+            --accent-muted:     rgba(43,181,160,0.15);
+
+            --menu-bg:          #27272a;   /* zinc-800, dark menus over video */
+            --menu-hover:       #3f3f46;   /* zinc-700 */
+            --track:            #3f3f46;   /* zinc-700 progress track */
+
+            --font: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --mono: "Monaco", "Menlo", "Consolas", monospace;
+        }
+        /* Night mode — override the light greys; accent + dark menus/preview stay */
+        body.night {
+            --bg-main:          #171717;
+            --bg-card:          #1f1f1f;
+            --bg-white:         #262626;
+            --bg-hover:         #2e2e2e;
+            --bg-active:        #3a3a3a;
+            --text-primary:     #ececeb;
+            --text-secondary:   #b6b6b3;
+            --text-tertiary:    #8a8a87;
+            --text-placeholder: #6a6a68;
+            --border-main:      rgba(255,255,255,0.08);
+            --border-input:     rgba(255,255,255,0.14);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: "Roboto", Arial, sans-serif; background: var(--bg-dark); color: var(--text-primary); height: 100vh; overflow: hidden; }
-        .container { display: flex; height: 100vh; gap: 12px; padding: 24px; }
-        .video-section { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
-        .video-wrapper { flex: 1; background: #000; border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; display: flex; flex-direction: column; position: relative; }
-        .preview-panel video { flex: 1; width: 100%; object-fit: contain; cursor: pointer; }
-        .preview-panel { position: relative; }
+        body { font-family: var(--font); background: var(--bg-main); color: var(--text-primary); height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
+        body.night ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+        :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-        /* Base button */
-        .btn { background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); }
-        .btn:hover { background: rgba(255,255,255,0.1); }
-        .btn-primary { background: var(--accent); color: var(--text-primary); }
-        .btn-primary:hover { background: var(--accent-hover); }
-        .btn-cancel { background: var(--bg-hover); color: var(--text-primary); }
-        .btn-cancel:hover { background: var(--bg-active); }
+        .app { display: flex; height: 100vh; padding: 12px; }
 
-        /* Progress bar */
-        .progress-bar { position: absolute; bottom: 40px; left: 12px; right: 12px; height: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; }
-        .progress-track { width: 100%; height: 3px; background: var(--bg-dark); display: flex; gap: 3px; border-radius: 2px; overflow: hidden; transition: height 0.1s; }
-        .progress-bar:hover .progress-track { height: 5px; }
-        .chapter-segment { height: 100%; background: rgba(255,255,255,0.3); }
-        .chapter-segment-fill { height: 100%; background: #f00; width: 0; }
-        .progress-dot { position: absolute; top: 50%; width: 13px; height: 13px; background: #f00; border-radius: 50%; transform: translateY(-50%) scale(0); transition: transform 0.1s; pointer-events: none; }
-        .progress-bar:hover .progress-dot, .progress-bar.dragging .progress-dot { transform: translateY(-50%) scale(1); }
+        /* ------------------------------------------------------------------ */
+        /* Feedback panel (left, styled like Manimate chat column)             */
+        /* ------------------------------------------------------------------ */
+        .feedback-panel { width: 320px; min-width: 200px; max-width: 600px; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 12px; padding: 16px; }
+        .feedback-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+        .feedback-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+        .feedback-sub { font-size: 11px; color: var(--text-tertiary); margin-bottom: 10px; line-height: 1.4; }
+        .dock-ctrl { display: flex; gap: 2px; }
+        /* Shared light-chrome icon button (dock + theme toggles) */
+        .icon-btn { display: flex; align-items: center; justify-content: center; border: none; background: transparent; cursor: pointer; color: var(--text-tertiary); }
+        .icon-btn:hover { background: var(--bg-hover); color: var(--text-secondary); }
+        .icon-btn svg { fill: currentColor; }
+        .dock-btn { width: 24px; height: 22px; border-radius: 5px; }
+        .dock-btn.active { background: var(--accent-muted); color: var(--accent); }
+        .dock-btn svg { width: 15px; height: 15px; }
+        /* Docking: panel snaps to the left (default), right, or bottom */
+        .feedback-panel { order: 1; } .resizer { order: 2; } .main-card { order: 3; }
+        .app.dock-right .feedback-panel { order: 3; } .app.dock-right .main-card { order: 1; }
+        .app.dock-bottom { flex-direction: column; }
+        .app.dock-bottom .feedback-panel { order: 3; width: auto; min-width: 0; max-width: none; height: 220px; min-height: 120px; max-height: 60vh; }
+        .app.dock-bottom .main-card { order: 1; }
+        .feedback-textarea { flex: 1; background: var(--bg-white); border: 1px solid var(--border-input); color: var(--text-primary); padding: 12px; border-radius: 8px; font-size: 14px; font-family: inherit; line-height: 1.6; outline: none; resize: none; }
+        .feedback-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-muted); }
+        .feedback-textarea::placeholder { color: var(--text-placeholder); }
+        .feedback-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .feedback-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; transition: background 0.15s; }
+        .feedback-btn.copy { background: var(--accent); color: #fff; }
+        .feedback-btn.copy:hover { background: var(--accent-hover); }
+        .shortcuts { font-size: 12px; color: var(--text-tertiary); padding: 12px 0 0; border-top: 1px solid var(--border-main); margin-top: 12px; line-height: 2; }
+        .shortcuts kbd { background: var(--bg-hover); border: 1px solid var(--border-main); padding: 2px 7px; border-radius: 4px; font-family: inherit; font-size: 11px; margin-right: 4px; color: var(--text-secondary); }
 
-        /* Controls */
-        .controls { display: none; align-items: center; gap: 8px; padding: 8px 12px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); position: absolute; bottom: 0; left: 0; right: 0; }
-        .preview-panel.active ~ .controls { display: flex; }
-        .play-btn { width: 40px; height: 40px; border-radius: 50%; }
-        .ctrl-btn { width: 36px; height: 36px; }
-        .play-btn svg, .ctrl-btn svg { fill: var(--text-primary); }
-        .play-btn svg { width: 24px; height: 24px; }
-        .ctrl-btn svg { width: 20px; height: 20px; }
-        .ctrl-btn.active { background: rgba(255,255,255,0.2); }
-        .time { font-size: 13px; margin-left: 4px; }
-        .time .sep { color: var(--text-secondary); margin: 0 4px; }
-        .spacer { flex: 1; }
-
-        /* Subtitle overlay */
-        .subtitle-overlay { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; max-width: 80%; z-index: 5; }
-        .subtitle-text { background: rgba(0,0,0,0.75); color: var(--text-primary); padding: 6px 16px; border-radius: var(--radius-sm); display: inline-block; font-family: Arial, sans-serif; line-height: 1.4; }
-        .subtitle-text:empty { display: none; }
-        .subtitle-text.size-small { font-size: 16px; }
-        .subtitle-text.size-medium { font-size: 24px; }
-        .subtitle-text.size-large { font-size: 36px; }
-
-        /* Menu surface (shared for dropdown, submenu, chapter-dropdown) */
-        .menu-surface { position: absolute; background: var(--bg-surface); border-radius: var(--radius-md); padding: 8px 0; display: none; box-shadow: var(--shadow-menu); z-index: 20; }
-        .menu-surface.open { display: block; }
-        .menu-wrap { position: relative; }
-        .dropdown-menu { bottom: 100%; right: 0; min-width: 140px; margin-bottom: 8px; }
-        .dropdown-menu.settings { min-width: 180px; }
-        .menu-opt { padding: 8px 16px; cursor: pointer; font-size: 14px; display: flex; align-items: center; }
-        .menu-opt:hover { background: rgba(255,255,255,0.1); }
-        .menu-opt .check { width: 20px; margin-right: 4px; opacity: 0; }
-        .menu-opt.active .check { opacity: 1; }
-        .menu-opt .arrow { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
-        .menu-divider { height: 1px; background: var(--bg-hover); margin: 8px 0; }
-        .submenu { left: -100%; bottom: 0; min-width: 140px; }
-
-        /* Download modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; }
-        .modal-overlay.open { display: flex; }
-        .modal { background: var(--bg-surface); border-radius: var(--radius-lg); padding: 24px; min-width: 320px; }
-        .modal h3 { font-size: 18px; margin-bottom: 16px; }
-        .modal-opts { display: flex; flex-direction: column; gap: 8px; }
-        .modal-opt { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #2a2a2a; border-radius: var(--radius-md); cursor: pointer; border: 2px solid transparent; }
-        .modal-opt:hover { border-color: var(--bg-hover); }
-        .modal-opt.selected { border-color: var(--accent); }
-        .modal-opt .info { flex: 1; }
-        .modal-opt .label { font-size: 14px; font-weight: 500; }
-        .modal-opt .desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-        .modal-opt .radio { width: 18px; height: 18px; border: 2px solid #666; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .modal-opt.selected .radio { border-color: var(--accent); }
-        .modal-opt.selected .radio::after { content: ''; width: 10px; height: 10px; background: var(--accent); border-radius: 50%; }
-        .modal-btns { display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end; }
-        .modal-btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; }
-        .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .modal-progress { margin-top: 16px; display: none; }
-        .modal-progress.show { display: block; }
-        .modal-progress .bar { height: 4px; background: var(--bg-hover); border-radius: 2px; overflow: hidden; }
-        .modal-progress .fill { height: 100%; background: var(--accent); width: 0; transition: width 0.3s; }
-        .modal-progress .status { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
-
-        /* Chapter dropdown */
-        .chapter-dropdown-container { position: relative; }
-        .scene-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; cursor: pointer; }
-        .scene-name:hover { color: var(--text-secondary); }
-        .scene-name::after { content: ' ▼'; font-size: 10px; }
-        .chapter-dropdown { bottom: 100%; left: 0; min-width: 260px; margin-bottom: 8px; max-height: 300px; overflow-y: auto; }
-        .chapter-dropdown::-webkit-scrollbar { width: 8px; }
-        .chapter-dropdown::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: var(--radius-sm); }
-        .chapter-item { padding: 10px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .chapter-item:hover { background: rgba(255,255,255,0.1); }
-        .chapter-item.active { background: rgba(255,255,255,0.15); }
-        .chapter-item .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-        .chapter-item .ch-time { color: var(--text-secondary); font-size: 12px; margin-left: 12px; }
-
-        /* Resizer */
-        .resizer { width: 6px; background: transparent; cursor: col-resize; position: relative; flex-shrink: 0; margin: 0 -3px; z-index: 10; }
-        .resizer::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 40px; background: var(--bg-hover); border-radius: 2px; opacity: 0; transition: opacity 0.2s; }
+        /* Resizer (vertical bar between columns; horizontal bar when docked bottom) */
+        .resizer { width: 12px; background: transparent; cursor: col-resize; position: relative; flex-shrink: 0; z-index: 10; }
+        .resizer::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 4px; height: 40px; background: var(--bg-active); border-radius: 2px; opacity: 0; transition: opacity 0.2s; }
         .resizer:hover::after, .resizer.active::after { opacity: 1; }
-        .resizer:hover, .resizer.active { background: rgba(30, 136, 229, 0.2); }
-        body.resizing { cursor: col-resize; user-select: none; }
+        .app.dock-bottom .resizer { width: auto; height: 12px; cursor: row-resize; }
+        .app.dock-bottom .resizer::after { width: 40px; height: 4px; }
+        body.resizing { user-select: none; }
         body.resizing video, body.resizing .feedback-panel { pointer-events: none; }
 
-        /* Content tabs */
-        .content-tabs { display: flex; gap: 8px; padding: 8px 16px; background: #1a1a1a; }
-        .content-tab { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; background: transparent; color: #9CA3AF; transition: all 0.15s; }
-        .content-tab:hover { color: #d1d5db; }
-        .content-tab.active { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+        /* ------------------------------------------------------------------ */
+        /* Main card with tab bar (Manimate PreviewPanel)                      */
+        /* ------------------------------------------------------------------ */
+        .main-card { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-main); }
+        .tab-bar { display: flex; align-items: center; gap: 4px; padding: 8px 16px; border-bottom: 1px solid var(--border-main); }
+        .content-tab { position: relative; padding: 5px 14px; font-size: 13px; font-weight: 500; border-radius: 6px; border: none; cursor: pointer; font-family: var(--font); transition: all 0.12s; background: transparent; color: var(--text-tertiary); }
+        .content-tab:hover:not(.active) { background: var(--bg-hover); }
+        .content-tab.active { background: var(--bg-white); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .content-tab .ready-dot { display: none; position: absolute; top: -1px; right: -1px; width: 5px; height: 5px; background: var(--accent); border-radius: 50%; }
+        .content-tab.ready .ready-dot { display: block; }
+        .theme-btn { width: 30px; height: 28px; border-radius: 6px; }
+        .theme-btn svg { width: 17px; height: 17px; }
+        .theme-btn .icon-sun { display: none; }              /* light mode → show moon */
+        body.night .theme-btn .icon-moon { display: none; }  /* night mode → show sun */
+        body.night .theme-btn .icon-sun { display: block; }
 
-        /* Content panels */
-        .content-panel { display: none; flex: 1; overflow: auto; background: var(--bg-dark); position: relative; }
-        .content-panel.active { display: flex; flex-direction: column; }
-        .content-panel.plan-panel, .content-panel.code-panel { background: #121212; }
-        .content-panel.preview-panel { background: #000; }
+        .panels { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .content-panel { position: absolute; inset: 0; overflow: auto; visibility: hidden; display: flex; flex-direction: column; }
+        .content-panel.active { visibility: visible; }
 
-        /* Plan panel (markdown) */
-        .plan-content { padding: 24px; color: #e5e7eb; line-height: 1.7; font-size: 15px; }
-        .plan-content h1 { font-size: 24px; font-weight: 600; margin: 0 0 16px; color: var(--text-primary); border-bottom: 1px solid #333; padding-bottom: 8px; }
-        .plan-content h2 { font-size: 20px; font-weight: 600; margin: 24px 0 12px; color: var(--text-primary); }
-        .plan-content h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; color: var(--text-primary); }
+        /* Empty state */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: var(--text-tertiary); padding: 40px; text-align: center; }
+        .empty-state svg { width: 48px; height: 48px; fill: var(--text-tertiary); margin-bottom: 16px; }
+        .empty-state p { font-size: 14px; }
+
+        /* ------------------------------------------------------------------ */
+        /* Plan panel (Manimate PlanTab: white background, light typography)   */
+        /* ------------------------------------------------------------------ */
+        .plan-panel { background: var(--bg-white); }
+        .plan-content { padding: 24px; color: var(--text-primary); line-height: 1.7; font-size: 15px; }
+        .plan-content h1 { font-size: 24px; font-weight: 600; margin: 0 0 16px; border-bottom: 1px solid var(--border-main); padding-bottom: 8px; }
+        .plan-content h2 { font-size: 20px; font-weight: 600; margin: 24px 0 12px; }
+        .plan-content h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; }
         .plan-content p { margin: 0 0 12px; }
         .plan-content ul, .plan-content ol { margin: 0 0 12px; padding-left: 24px; }
         .plan-content li { margin: 4px 0; }
-        .plan-content code { background: #272727; padding: 2px 6px; border-radius: var(--radius-sm); font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; }
-        .plan-content pre { background: #1e1e1e; padding: 16px; border-radius: var(--radius-md); overflow-x: auto; margin: 0 0 16px; }
-        .plan-content pre code { background: transparent; padding: 0; }
-        .plan-content blockquote { border-left: 3px solid var(--bg-hover); padding-left: 16px; margin: 0 0 12px; color: #9ca3af; }
-        .plan-content strong { color: var(--text-primary); }
-        .plan-content a { color: #60a5fa; text-decoration: none; }
+        .plan-content code { background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 13px; }
+        .plan-content pre { background: #1f2937; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 0 0 16px; }
+        .plan-content pre code { background: transparent; padding: 0; color: #e5e7eb; }
+        .plan-content blockquote { border-left: 3px solid var(--text-tertiary); padding-left: 16px; margin: 0 0 12px; color: var(--text-secondary); }
+        .plan-content a { color: var(--accent); text-decoration: none; }
         .plan-content a:hover { text-decoration: underline; }
-        .plan-content hr { border: none; border-top: 1px solid #333; margin: 24px 0; }
+        .plan-content hr { border: none; border-top: 1px solid var(--border-main); margin: 24px 0; }
 
-        /* Code panel */
-        .code-content { padding: 0; margin: 0; background: #1e1e1e; color: #d4d4d4; font-family: 'Monaco', 'Menlo', 'Consolas', monospace; font-size: 13px; line-height: 1.6; overflow: auto; flex: 1; }
-        .code-content pre { margin: 0; padding: 16px; }
+        /* ------------------------------------------------------------------ */
+        /* Code panel (Manimate CodeTab: dark with toolbar)                    */
+        /* ------------------------------------------------------------------ */
+        .code-panel { background: #111113; }
+        .code-toolbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; height: 36px; min-height: 36px; background: #1c1c1f; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .code-toolbar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .code-toolbar-lang { font-size: 11px; font-weight: 500; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.1); padding: 2px 7px; border-radius: 4px; font-family: var(--mono); }
+        .code-toolbar-filename { font-size: 12px; color: #a1a1aa; font-family: var(--mono); }
+        .code-toolbar-meta { font-size: 11px; color: #52525b; }
+        .code-copy-btn { display: flex; align-items: center; gap: 5px; padding: 4px 8px; background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; color: #71717a; font-size: 12px; font-family: inherit; transition: all 0.15s ease; }
+        .code-copy-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); color: #d4d4d8; }
+        .code-copy-btn.copied { color: var(--accent); }
+        .code-copy-btn svg { width: 14px; height: 14px; fill: currentColor; }
+        .code-content { padding: 10px 8px 16px; margin: 0; background: #111113; color: #d4d4d4; font-family: var(--mono); font-size: 13px; line-height: 1.6; flex: 1; overflow: visible; }
         .code-line { display: flex; }
         .code-line:hover { background: rgba(255,255,255,0.03); }
-        .line-number { color: #6e7681; text-align: right; padding-right: 16px; min-width: 50px; user-select: none; }
+        .line-number { color: #3f3f46; text-align: right; padding-right: 16px; min-width: 50px; user-select: none; }
         .line-content { flex: 1; white-space: pre; }
         .hl-keyword { color: #c586c0; }
         .hl-string { color: #ce9178; }
@@ -170,52 +167,130 @@
         .hl-decorator { color: #d7ba7d; }
         .hl-builtin { color: #4fc1ff; }
 
-        /* Empty state */
-        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: #6b7280; padding: 40px; text-align: center; }
-        .empty-state svg { width: 48px; height: 48px; fill: #4b5563; margin-bottom: 16px; }
-        .empty-state p { font-size: 14px; }
+        /* ------------------------------------------------------------------ */
+        /* Preview panel (Manimate PreviewTab: black player, teal accent)      */
+        /* ------------------------------------------------------------------ */
+        .preview-panel { background: #000; overflow: hidden; }
+        .video-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; }
+        .video-stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+        .tap-overlay { position: absolute; inset: 0; cursor: pointer; z-index: 11; }
 
-        /* Feedback panel */
-        .feedback-panel { width: 320px; min-width: 200px; max-width: 600px; display: flex; flex-direction: column; overflow: hidden; background: #181818; border-radius: var(--radius-lg); padding: 16px; }
-        .feedback-textarea { flex: 1; background: #272727; border: none; color: var(--text-primary); padding: 12px; border-radius: var(--radius-md); font-size: 14px; font-family: inherit; line-height: 1.6; outline: none; resize: none; }
-        .feedback-textarea:focus { box-shadow: 0 0 0 2px var(--accent); }
-        .feedback-textarea::placeholder { color: #666; }
-        .feedback-actions { display: flex; gap: 8px; margin-top: 12px; }
-        .feedback-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
-        .feedback-btn.copy { background: var(--accent); color: var(--text-primary); }
-        .feedback-btn.copy:hover { background: var(--accent-hover); }
-        .shortcuts { font-size: 12px; color: var(--text-secondary); padding: 12px 0; border-top: 1px solid var(--bg-hover); margin-top: 12px; }
-        .shortcuts kbd { background: #272727; padding: 3px 8px; border-radius: var(--radius-sm); font-family: inherit; font-size: 11px; margin-right: 4px; }
+        /* Double-click seek feedback */
+        .dtap { position: absolute; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; animation: dtap-fade 0.5s ease-out forwards; z-index: 12; }
+        .dtap.left { left: 15%; } .dtap.right { right: 15%; }
+        .dtap .bubble { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
+        .dtap svg { width: 24px; height: 24px; fill: #fff; }
+        .dtap span { color: #fff; font-size: 12px; font-weight: 500; }
+        @keyframes dtap-fade { 0% { opacity: 1; transform: translateY(-50%) scale(1); } 100% { opacity: 0; transform: translateY(-50%) scale(1.2); } }
 
-        /* Action buttons below video */
-        .video-actions { display: flex; gap: 8px; padding: 12px 16px; background: #181818; border-radius: 0 0 var(--radius-lg) var(--radius-lg); flex-wrap: wrap; align-items: center; }
-        .action-btn { display: flex; align-items: center; gap: 6px; background: #272727; border: none; color: var(--text-primary); padding: 8px 14px; border-radius: 18px; cursor: pointer; font-size: 13px; font-weight: 500; }
-        .action-btn:hover { background: var(--bg-hover); }
-        .action-btn svg { width: 16px; height: 16px; fill: currentColor; }
-        .action-btn.add-btn { padding: 8px 12px; font-size: 16px; }
-        #customButtons { display: contents; }
-        .custom-btn-wrap { position: relative; }
-        .custom-btn-wrap .remove-btn { display: none; position: absolute; right: -4px; top: -4px; width: 16px; height: 16px; background: #f44; border: none; border-radius: 50%; color: var(--text-primary); font-size: 10px; cursor: pointer; align-items: center; justify-content: center; }
-        .custom-btn-wrap:hover .remove-btn { display: flex; }
+        /* Subtitle overlay */
+        .subtitle-overlay { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; max-width: 80%; z-index: 10; }
+        .subtitle-text { background: rgba(0,0,0,0.75); color: #fff; padding: 6px 16px; border-radius: 4px; display: inline-block; line-height: 1.4; }
+        .subtitle-text:empty { display: none; }
+        .subtitle-text.size-small { font-size: 14px; }
+        .subtitle-text.size-medium { font-size: 18px; }
+        .subtitle-text.size-large { font-size: 24px; }
+
+        /* Progress bar - segmented by chapters, teal fill like Manimate */
+        .progress-bar { position: absolute; bottom: 48px; left: 12px; right: 12px; height: 20px; cursor: pointer; z-index: 15; display: flex; align-items: center; }
+        .progress-track { width: 100%; height: 4px; display: flex; gap: 3px; transition: height 0.15s; }
+        .progress-bar:hover .progress-track, .progress-bar.dragging .progress-track { height: 6px; }
+        .chapter-segment { height: 100%; background: var(--track); border-radius: 2px; overflow: hidden; position: relative; }
+        .chapter-segment-fill { height: 100%; background: var(--accent); width: 0; }
+        .progress-dot { position: absolute; top: 50%; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; transform: translateY(-50%) scale(0); transition: transform 0.1s, left 0.05s; pointer-events: none; }
+        .progress-bar:hover .progress-dot, .progress-bar.dragging .progress-dot, .progress-bar.playing .progress-dot { transform: translateY(-50%) scale(1); }
+
+        /* Controls overlay */
+        .controls { position: absolute; bottom: 0; left: 0; right: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); z-index: 20; }
+        .btn { background: transparent; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: background 0.15s; font-family: inherit; }
+        .btn:hover { background: rgba(255,255,255,0.1); }
+        .btn.active { background: rgba(255,255,255,0.2); }
+        .play-btn { width: 40px; height: 40px; border-radius: 50%; }
+        .ctrl-btn { width: 36px; height: 36px; }
+        .play-btn svg { width: 24px; height: 24px; fill: #fff; }
+        .ctrl-btn svg { width: 20px; height: 20px; fill: #fff; }
+        .time { font-size: 13px; color: #fff; font-family: var(--mono); }
+        .time .sep { color: #a1a1aa; margin: 0 4px; }
+        .spacer { flex: 1; }
+
+        /* Chapter name + dropdown */
+        .chapter-wrap { position: relative; display: flex; align-items: center; gap: 6px; margin-left: 12px; min-width: 0; }
+        .chapter-bullet { color: #71717a; }
+        .scene-name { font-size: 13px; color: #d4d4d8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; cursor: pointer; }
+        .scene-name:hover { color: #fff; }
+
+        /* Capture (insert timestamp) button */
+        .capture-btn { height: 28px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; color: #a1a1aa; font-size: 12px; font-weight: 500; }
+        .capture-btn:hover { color: #fff; }
+        .capture-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+        /* Dark menu surfaces (zinc-800, like Manimate settings menus) */
+        .menu-surface { position: absolute; background: var(--menu-bg); border-radius: 8px; padding: 4px 0; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.4); z-index: 30; overflow: hidden; }
+        .menu-surface.open { display: block; }
+        .menu-wrap { position: relative; }
+        .dropdown-menu { bottom: 100%; right: 0; min-width: 180px; margin-bottom: 8px; overflow: visible; }
+        .menu-opt { padding: 8px 16px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; color: #fff; }
+        .menu-opt:hover { background: var(--menu-hover); }
+        .menu-opt .check { width: 16px; opacity: 0; color: var(--accent); }
+        .menu-opt.active { color: var(--accent); }
+        .menu-opt.active .check { opacity: 1; }
+        .menu-opt .arrow { margin-left: auto; font-size: 12px; color: #a1a1aa; }
+        .menu-divider { height: 1px; background: var(--menu-hover); margin: 4px 0; }
+        .submenu { right: 100%; bottom: 0; margin-right: 4px; min-width: 140px; }
+        .chapter-dropdown { bottom: 100%; left: 0; min-width: 260px; margin-bottom: 8px; max-height: 300px; overflow-y: auto; }
+        .chapter-item { padding: 10px 16px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; color: #fff; }
+        .chapter-item:hover { background: var(--menu-hover); }
+        .chapter-item.active { color: var(--accent); }
+        .chapter-item .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .chapter-item .ch-time { color: #a1a1aa; font-size: 12px; margin-left: 12px; font-family: var(--mono); }
+
+        /* Download modal (Manimate style: dark, accent-bordered options) */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: var(--menu-bg); border-radius: 12px; padding: 24px; min-width: 320px; max-width: 400px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+        .modal h3 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+        .modal-note { font-size: 14px; color: #e4e4e7; margin-bottom: 8px; }
+        .modal-hint { font-size: 12px; color: #a1a1aa; line-height: 1.5; margin-bottom: 20px; }
+        .modal-btns { display: flex; gap: 12px; justify-content: flex-end; }
+        .modal-btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; transition: background 0.15s; }
+        .modal-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-cancel { background: var(--menu-hover); color: #fff; }
+        .btn-cancel:hover { background: #52525b; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="app">
         <div class="feedback-panel">
-            <textarea class="feedback-textarea" id="feedbackTextarea" placeholder="Click 'Insert Timestamp' while watching to add timestamps here..."></textarea>
+            <div class="feedback-head">
+                <div class="feedback-title">Notes</div>
+                <div class="dock-ctrl" id="dockCtrl">
+                    <button class="icon-btn dock-btn" data-dock="left" title="Dock left"><svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="2.2" y="3.2" width="4" height="9.6" rx="1" fill="currentColor"/></svg></button>
+                    <button class="icon-btn dock-btn" data-dock="bottom" title="Dock bottom"><svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="2.2" y="9.5" width="11.6" height="3.3" rx="1" fill="currentColor"/></svg></button>
+                    <button class="icon-btn dock-btn" data-dock="right" title="Dock right"><svg viewBox="0 0 16 16"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="9.8" y="3.2" width="4" height="9.6" rx="1" fill="currentColor"/></svg></button>
+                </div>
+            </div>
+            <div class="feedback-sub">Copy into the Coding Agent to revise.</div>
+            <textarea class="feedback-textarea" id="feedbackTextarea" placeholder="Press T to timestamp a moment, then describe what to change…"></textarea>
             <div class="feedback-actions">
                 <button class="feedback-btn copy" id="copyAllBtn">Copy</button>
             </div>
-            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>T</kbd> Insert timestamp</div>
+            <div class="shortcuts"><kbd>Space</kbd> Play/Pause <kbd>C</kbd> Subtitles <kbd>T</kbd> Timestamp</div>
         </div>
         <div class="resizer" id="resizer"></div>
-        <div class="video-section">
-            <div class="video-wrapper">
-                <div class="content-tabs">
-                    <button class="content-tab" data-tab="plan">Plan</button>
-                    <button class="content-tab" data-tab="code">Code</button>
-                    <button class="content-tab active" data-tab="preview">Preview</button>
-                </div>
+        <div class="main-card">
+            <div class="tab-bar">
+                <button class="content-tab" data-tab="plan">Plan<span class="ready-dot"></span></button>
+                <button class="content-tab" data-tab="code">Code<span class="ready-dot"></span></button>
+                <button class="content-tab active" data-tab="preview">Preview<span class="ready-dot"></span></button>
+                <div style="flex:1"></div>
+                <button class="icon-btn theme-btn" id="themeBtn" title="Toggle night mode">
+                    <svg class="icon-moon" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.39 5.39 0 0 1-4.4 2.26 5.4 5.4 0 0 1-5.4-5.4c0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+                    <svg class="icon-sun" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 16a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1zM4 11a1 1 0 1 1 0 2H2a1 1 0 1 1 0-2h2zm18 0a1 1 0 1 1 0 2h-2a1 1 0 1 1 0-2h2zM5.6 4.2l1.4 1.4A1 1 0 0 1 5.6 7L4.2 5.6a1 1 0 0 1 1.4-1.4zm12.8 12.8l1.4 1.4a1 1 0 0 1-1.4 1.4L17 18.4a1 1 0 0 1 1.4-1.4zM4.2 18.4L5.6 17A1 1 0 0 1 7 18.4l-1.4 1.4a1 1 0 0 1-1.4-1.4zM17 5.6l1.4-1.4a1 1 0 0 1 1.4 1.4L18.4 7A1 1 0 0 1 17 5.6z"/></svg>
+                </button>
+            </div>
+            <div class="panels">
                 <div class="content-panel plan-panel" id="planPanel">
                     <div class="plan-content" id="planContent">
                         <div class="empty-state">
@@ -225,84 +300,86 @@
                     </div>
                 </div>
                 <div class="content-panel code-panel" id="codePanel">
+                    <div class="code-toolbar" id="codeToolbar" hidden>
+                        <div class="code-toolbar-left">
+                            <span class="code-toolbar-lang">Python</span>
+                            <span class="code-toolbar-filename">script.py</span>
+                            <span class="code-toolbar-meta" id="codeLineCount"></span>
+                        </div>
+                        <button class="code-copy-btn" id="codeCopyBtn">
+                            <svg viewBox="0 0 16 16"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>
+                            <span id="codeCopyLabel">Copy</span>
+                        </button>
+                    </div>
                     <div class="code-content" id="codeContent">
                         <div class="empty-state">
                             <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
-                            <p>No cscript.py found</p>
+                            <p style="color:#6b7280">No script.py found</p>
                         </div>
                     </div>
                 </div>
                 <div class="content-panel preview-panel active" id="previewPanel">
-                    <video id="video" src="/video.mp4"></video>
-                    <div class="subtitle-overlay"><div class="subtitle-text size-medium" id="subtitleText"></div></div>
-                    <div class="progress-bar" id="progressBar">
-                        <div class="progress-track" id="progressTrack"></div>
-                        <div class="progress-dot" id="progressDot"></div>
-                    </div>
-                </div>
-                <div class="controls">
-                    <button class="btn play-btn" id="playBtn">
-                        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        <svg id="pauseIcon" viewBox="0 0 24 24" hidden><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                        <svg id="replayIcon" viewBox="0 0 24 24" hidden><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-                    </button>
-                    <div class="time"><span id="curTime">0:00</span><span class="sep">/</span><span id="durTime">0:00</span></div>
-                    <div class="chapter-dropdown-container">
-                        <div class="scene-name" id="sceneName">-</div>
-                        <div class="menu-surface chapter-dropdown" id="chapterDropdown"></div>
-                    </div>
-                    <div class="spacer"></div>
-                    <button class="btn ctrl-btn" id="ccBtn" title="Subtitles" hidden>
-                        <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
-                    </button>
-                    <div class="menu-wrap">
-                        <button class="btn ctrl-btn" id="settingsBtn" title="Settings">
-                            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-                        </button>
-                        <div class="menu-surface dropdown-menu settings" id="settingsMenu">
-                            <div class="menu-opt" data-submenu="fontSizeMenu"><span>Subtitle size</span><span class="arrow">›</span></div>
-                            <div class="menu-surface submenu" id="fontSizeMenu">
-                                <div class="menu-opt" data-size="small"><span class="check">✓</span>Small</div>
-                                <div class="menu-opt active" data-size="medium"><span class="check">✓</span>Medium</div>
-                                <div class="menu-opt" data-size="large"><span class="check">✓</span>Large</div>
+                    <div class="video-stage">
+                        <video id="video" src="/video.mp4" playsinline preload="auto"></video>
+                        <div class="tap-overlay" id="tapOverlay"></div>
+                        <div class="subtitle-overlay"><div class="subtitle-text size-medium" id="subtitleText"></div></div>
+                        <div class="progress-bar" id="progressBar">
+                            <div class="progress-track" id="progressTrack"></div>
+                            <div class="progress-dot" id="progressDot"></div>
+                        </div>
+                        <div class="controls">
+                            <button class="btn play-btn" id="playBtn" title="Play/Pause (Space)">
+                                <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                <svg id="pauseIcon" viewBox="0 0 24 24" hidden><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                                <svg id="replayIcon" viewBox="0 0 24 24" hidden><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                            </button>
+                            <div class="time"><span id="curTime">0:00</span><span class="sep">/</span><span id="durTime">0:00</span></div>
+                            <div class="chapter-wrap">
+                                <span class="chapter-bullet">&bull;</span>
+                                <div class="scene-name" id="sceneName" title="Chapters">-</div>
+                                <div class="menu-surface chapter-dropdown" id="chapterDropdown"></div>
                             </div>
-                            <div class="menu-divider"></div>
-                            <div class="menu-opt" data-submenu="speedMenu"><span>Playback speed</span><span class="arrow">›</span></div>
-                            <div class="menu-surface submenu" id="speedMenu"></div>
+                            <button class="btn capture-btn" id="insertTimestampBtn" title="Insert timestamp into feedback (T)">
+                                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                                Capture
+                            </button>
+                            <div class="spacer"></div>
+                            <button class="btn ctrl-btn" id="ccBtn" title="Subtitles (C)" hidden>
+                                <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+                            </button>
+                            <div class="menu-wrap">
+                                <button class="btn ctrl-btn" id="settingsBtn" title="Settings">
+                                    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                                </button>
+                                <div class="menu-surface dropdown-menu" id="settingsMenu">
+                                    <div class="menu-opt" data-submenu="fontSizeMenu"><span>Subtitle size</span><span class="arrow">&rsaquo;</span></div>
+                                    <div class="menu-surface submenu" id="fontSizeMenu">
+                                        <div class="menu-opt" data-size="small"><span class="check">&#10003;</span>Small</div>
+                                        <div class="menu-opt active" data-size="medium"><span class="check">&#10003;</span>Medium</div>
+                                        <div class="menu-opt" data-size="large"><span class="check">&#10003;</span>Large</div>
+                                    </div>
+                                    <div class="menu-divider"></div>
+                                    <div class="menu-opt" data-submenu="speedMenu"><span>Playback speed</span><span class="arrow">&rsaquo;</span></div>
+                                    <div class="menu-surface submenu" id="speedMenu"></div>
+                                </div>
+                            </div>
+                            <button class="btn ctrl-btn" id="downloadBtn" title="Download">
+                                <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                            </button>
+                            <button class="btn ctrl-btn" id="fullscreenBtn" title="Fullscreen (F)">
+                                <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                            </button>
                         </div>
                     </div>
-                    <button class="btn ctrl-btn" id="downloadBtn" title="Download">
-                        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                    </button>
                 </div>
-            </div>
-            <div class="video-actions">
-                <button class="action-btn" id="insertTimestampBtn">
-                    <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-                    Insert Timestamp
-                </button>
-                <div id="customButtons"></div>
-                <button class="action-btn add-btn" id="addCustomBtn" title="Add custom button">+</button>
             </div>
         </div>
     </div>
     <div class="modal-overlay" id="downloadModal">
         <div class="modal">
             <h3>Download video</h3>
-            <div class="modal-opts">
-                <div class="modal-opt selected" data-quality="low">
-                    <div class="radio"></div>
-                    <div class="info"><div class="label">Low quality (480p)</div><div class="desc">Current preview, instant download</div></div>
-                </div>
-                <div class="modal-opt" data-quality="high">
-                    <div class="radio"></div>
-                    <div class="info"><div class="label">High quality (1080p)</div><div class="desc">Re-renders, may take a few minutes</div></div>
-                </div>
-            </div>
-            <div class="modal-progress" id="downloadProgress">
-                <div class="bar"><div class="fill" id="progressFill"></div></div>
-                <div class="status" id="progressStatus">Preparing...</div>
-            </div>
+            <p class="modal-note">Saves the current preview quality.</p>
+            <p class="modal-hint">Need 1080p or 4K? Just ask in the chat, e.g. "render in 4K". The agent will re-render and re-mux at higher quality.</p>
             <div class="modal-btns">
                 <button class="modal-btn btn-cancel" id="downloadCancel">Cancel</button>
                 <button class="modal-btn btn-primary" id="downloadConfirm">Download</button>
@@ -317,8 +394,8 @@ const video = $('video'), progressBar = $('progressBar'), settingsMenu = $('sett
 
 let chapters = [], subtitles = [];
 let ended = false, subtitlesOn = false;
+let userSelectedTab = false, scriptText = null;
 
-// Cached DOM elements
 const els = {
     curTime: $('curTime'), durTime: $('durTime'), sceneName: $('sceneName'),
     playIcon: $('playIcon'), pauseIcon: $('pauseIcon'), replayIcon: $('replayIcon'),
@@ -329,6 +406,8 @@ const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')
 const getChapter = t => chapters.findLast(c => t >= c.start) || chapters[0];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const seekBy = delta => { video.currentTime = clamp(video.currentTime + delta, 0, video.duration); ended = false; updateUI(); };
+
+const setTabReady = tab => document.querySelector(`.content-tab[data-tab="${tab}"]`)?.classList.add('ready');
 
 // Unified drag handler
 const makeDraggable = (trigger, onDrag, onEnd = null, activeClass = 'dragging') => {
@@ -350,17 +429,17 @@ const selectOption = (container, selector, activeClass, onSelect) => {
 };
 
 // Generic text loader
-const loadText = async (url, container, transform) => {
+const loadText = async (url, onOk) => {
     try {
         const res = await fetch(url);
-        if (res.ok) container.innerHTML = transform(await res.text());
+        if (res.ok) onOk(await res.text());
     } catch (e) { console.error(e); }
 };
 
 function parseSRT(text) {
     return text.trim().split(/\n\n+/).map(block => {
         const lines = block.split('\n');
-        const m = lines[1]?.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
+        const m = lines[1]?.match(/(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})/);
         return m ? { start: +m[1]*3600 + +m[2]*60 + +m[3] + +m[4]/1000, end: +m[5]*3600 + +m[6]*60 + +m[7] + +m[8]/1000, text: lines.slice(2).join('\n') } : null;
     }).filter(Boolean);
 }
@@ -374,11 +453,11 @@ function parseMarkdown(md) {
     html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
     html = html.replace(/^---$/gm, '<hr>');
     html = html.replace(/^(\s*)[-*] (.+)$/gm, '$1<li>$2</li>');
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>');
     html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>');
     html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
     html = html.split('\n\n').map(p => {
         p = p.trim();
@@ -439,7 +518,8 @@ function highlightPython(code) {
     }).join('');
 }
 
-function switchTab(tab) {
+function switchTab(tab, byUser = true) {
+    if (byUser) userSelectedTab = true;
     document.querySelectorAll('.content-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     document.querySelectorAll('.content-panel').forEach(p => p.classList.toggle('active', p.id === tab + 'Panel'));
 }
@@ -454,6 +534,7 @@ function updateUI() {
     els.playIcon.style.display = !ended && video.paused ? 'block' : 'none';
     els.pauseIcon.style.display = !ended && !video.paused ? 'block' : 'none';
     els.replayIcon.style.display = ended ? 'block' : 'none';
+    progressBar.classList.toggle('playing', !video.paused && !ended);
 
     chapters.forEach((c, i) => {
         const fill = document.querySelector(`.chapter-segment[data-i="${i}"] .chapter-segment-fill`);
@@ -491,57 +572,78 @@ function togglePlay() {
     video.paused ? video.play() : video.pause();
 }
 
+function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+    document.querySelector('.video-stage')?.requestFullscreen?.().catch(() => {});
+}
+
+function showSeekFeedback(side) {
+    const stage = document.querySelector('.video-stage');
+    stage.querySelectorAll('.dtap').forEach(el => el.remove());
+    const el = document.createElement('div');
+    el.className = `dtap ${side}`;
+    el.innerHTML = `<div class="bubble">${side === 'left'
+        ? '<svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>'}</div><span>5s</span>`;
+    stage.appendChild(el);
+    setTimeout(() => el.remove(), 500);
+}
+
 function seek(e) {
     video.currentTime = clamp((e.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth, 0, 1) * video.duration;
     ended = false;
     updateUI();
 }
 
-async function downloadVideo(quality) {
+async function downloadVideo() {
     $('downloadConfirm').disabled = true;
-    $('downloadProgress').classList.add('show');
-    $('progressFill').style.width = '0%';
-    $('progressStatus').textContent = quality === 'high' ? 'Re-rendering...' : 'Preparing...';
-
-    const checkInterval = quality === 'high' && setInterval(async () => {
-        const res = await fetch('/download/status').catch(() => null);
-        if (res?.ok) { const s = await res.json(); $('progressFill').style.width = s.progress + '%'; $('progressStatus').textContent = s.message; }
-    }, 1000);
-
     try {
-        const res = await fetch('/download?quality=' + quality);
-        if (checkInterval) clearInterval(checkInterval);
+        const res = await fetch('/download');
         if (!res.ok) throw new Error('Download failed');
-        $('progressFill').style.width = '100%';
-        $('progressStatus').textContent = 'Ready!';
         const blob = await res.blob(), a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = res.headers.get('X-Filename') || 'video.mp4';
         a.click();
         URL.revokeObjectURL(a.href);
-        setTimeout(() => downloadModal.classList.remove('open'), 500);
+        downloadModal.classList.remove('open');
     } catch (e) {
-        if (checkInterval) clearInterval(checkInterval);
-        $('progressStatus').textContent = 'Error: ' + e.message;
+        console.error(e);
+    } finally {
         $('downloadConfirm').disabled = false;
     }
 }
 
 async function init() {
     chapters = await (await fetch('/chapters.json')).json();
-    try { const res = await fetch('/subtitles.srt'); if (res.ok) subtitles = parseSRT(await res.text()); } catch {}
+    try { const res = await fetch('/subtitles.srt'); if (res.ok) { subtitles = parseSRT(await res.text()); } } catch {}
 
     // Load tab content
-    loadText('/plan.md', $('planContent'), parseMarkdown);
-    loadText('/cscript.py', $('codeContent'), code => '<pre>' + highlightPython(code) + '</pre>');
+    loadText('/plan.md', text => { $('planContent').innerHTML = parseMarkdown(text); setTabReady('plan'); });
+    loadText('/cscript.py', code => {
+        scriptText = code;
+        $('codeContent').innerHTML = highlightPython(code);
+        $('codeToolbar').hidden = false;
+        $('codeLineCount').textContent = `${code.split('\n').length} lines`;
+        setTabReady('code');
+    });
 
     // Tab switching
     document.querySelectorAll('.content-tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
 
-    $('chapterDropdown').innerHTML = chapters.map(c => `<div class="chapter-item" data-t="${c.start}"><span class="ch-name">${c.name}</span><span class="ch-time">${fmt(c.start)}</span></div>`).join('');
+    // Code copy button
+    $('codeCopyBtn').addEventListener('click', () => {
+        if (!scriptText || !navigator.clipboard) return;
+        navigator.clipboard.writeText(scriptText).then(() => {
+            $('codeCopyBtn').classList.add('copied');
+            $('codeCopyLabel').textContent = 'Copied!';
+            setTimeout(() => { $('codeCopyBtn').classList.remove('copied'); $('codeCopyLabel').textContent = 'Copy'; }, 1500);
+        });
+    });
+
+    $('chapterDropdown').innerHTML = chapters.map(c => `<div class="chapter-item" data-t="${c.start}"><span class="ch-name">${esc(c.name)}</span><span class="ch-time">${fmt(c.start)}</span></div>`).join('');
     $('progressTrack').innerHTML = chapters.map((c, i) => `<div class="chapter-segment" data-i="${i}" style="flex-grow:${c.duration}"><div class="chapter-segment-fill"></div></div>`).join('');
-    $('speedMenu').innerHTML = [0.5, 0.75, 1, 1.25, 1.5, 2].map(s => `<div class="menu-opt${s === 1 ? ' active' : ''}" data-speed="${s}"><span class="check">✓</span>${s === 1 ? 'Normal' : s + 'x'}</div>`).join('');
-    if (subtitles.length) $('ccBtn').hidden = false;
+    $('speedMenu').innerHTML = [0.5, 0.75, 1, 1.25, 1.5, 2].map(s => `<div class="menu-opt${s === 1 ? ' active' : ''}" data-speed="${s}"><span class="check">&#10003;</span>${s === 1 ? 'Normal' : s + 'x'}</div>`).join('');
+    if (subtitles.length) { $('ccBtn').hidden = false; subtitlesOn = true; $('ccBtn').classList.add('active'); }
 
     // Video events
     video.addEventListener('timeupdate', updateUI);
@@ -549,17 +651,27 @@ async function init() {
     video.addEventListener('pause', updateUI);
     video.addEventListener('ended', () => { ended = true; updateUI(); });
     video.addEventListener('loadedmetadata', () => els.durTime.textContent = fmt(video.duration));
-    video.addEventListener('click', togglePlay);
+    video.addEventListener('canplay', () => { setTabReady('preview'); if (!userSelectedTab) switchTab('preview', false); }, { once: true });
     $('playBtn').addEventListener('click', togglePlay);
+
+    // Tap overlay: click = play/pause, double-click = seek ±5s
+    const tapOverlay = $('tapOverlay');
+    tapOverlay.addEventListener('click', togglePlay);
+    tapOverlay.addEventListener('dblclick', e => {
+        const rect = tapOverlay.getBoundingClientRect();
+        const side = e.clientX - rect.left < rect.width / 2 ? 'left' : 'right';
+        seekBy(side === 'left' ? -5 : 5);
+        showSeekFeedback(side);
+    });
 
     // Progress bar drag
     makeDraggable(progressBar, seek);
 
     // Document-level click handlers (close dropdowns)
-    const closeMenus = () => settingsMenu.querySelectorAll('.open').forEach(el => el.classList.remove('open')) || settingsMenu.classList.remove('open');
+    const closeMenus = () => { settingsMenu.querySelectorAll('.open').forEach(el => el.classList.remove('open')); settingsMenu.classList.remove('open'); };
     document.addEventListener('click', e => {
-        if (!e.target.closest('.chapter-dropdown-container')) $('chapterDropdown').classList.remove('open');
-        closeMenus();
+        if (!e.target.closest('.chapter-wrap')) $('chapterDropdown').classList.remove('open');
+        if (!e.target.closest('.menu-wrap')) closeMenus();
     });
 
     // Chapter dropdown
@@ -573,65 +685,67 @@ async function init() {
     $('insertTimestampBtn').addEventListener('click', insertTimestamp);
     $('copyAllBtn').addEventListener('click', copyNotes);
 
-    // Custom buttons
-    const STORAGE_KEY = 'customFeedbackButtons';
-    let buttons = JSON.parse(localStorage.getItem(STORAGE_KEY)) || ['fix layout', 'slow down'];
-
-    const render = () => {
-        $('customButtons').innerHTML = buttons.map((label, i) =>
-            `<div class="custom-btn-wrap"><button class="action-btn" data-label="${label}">${label}</button><button class="remove-btn" data-i="${i}">&times;</button></div>`
-        ).join('');
-    };
-    const save = () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(buttons)); render(); };
-
-    $('addCustomBtn').addEventListener('click', () => {
-        const label = prompt('Enter button label:')?.trim();
-        if (label) { buttons.push(label); save(); }
-    });
-
-    $('customButtons').addEventListener('click', e => {
-        const btn = e.target.closest('[data-label]');
-        if (btn) insertText(btn.dataset.label);
-        const rm = e.target.closest('.remove-btn');
-        if (rm) { buttons.splice(+rm.dataset.i, 1); save(); }
-    });
-
-    render();
-
     // CC toggle
     $('ccBtn').addEventListener('click', () => { subtitlesOn = !subtitlesOn; $('ccBtn').classList.toggle('active', subtitlesOn); updateUI(); });
+
+    // Fullscreen
+    $('fullscreenBtn').addEventListener('click', toggleFullscreen);
 
     // Settings menu
     $('settingsBtn').addEventListener('click', e => { e.stopPropagation(); settingsMenu.classList.toggle('open'); });
     settingsMenu.addEventListener('mouseover', e => { const opt = e.target.closest('[data-submenu]'); if (opt) { settingsMenu.querySelectorAll('.submenu').forEach(s => s.classList.remove('open')); $(opt.dataset.submenu).classList.add('open'); } });
 
-    // Menu selections using helper
+    // Menu selections
     selectOption($('fontSizeMenu'), '[data-size]', 'active', opt => { els.subtitleText.className = 'subtitle-text size-' + opt.dataset.size; closeMenus(); });
     selectOption($('speedMenu'), '[data-speed]', 'active', opt => { video.playbackRate = +opt.dataset.speed; closeMenus(); });
-    selectOption(downloadModal, '.modal-opt', 'selected', opt => selectedQuality = opt.dataset.quality);
 
     // Download modal
-    let selectedQuality = 'low';
-    $('downloadBtn').addEventListener('click', () => { downloadModal.classList.add('open'); $('downloadProgress').classList.remove('show'); $('downloadConfirm').disabled = false; });
+    $('downloadBtn').addEventListener('click', () => { downloadModal.classList.add('open'); $('downloadConfirm').disabled = false; });
     $('downloadCancel').addEventListener('click', () => downloadModal.classList.remove('open'));
     downloadModal.addEventListener('click', e => e.target === downloadModal && downloadModal.classList.remove('open'));
-    $('downloadConfirm').addEventListener('click', () => downloadVideo(selectedQuality));
+    $('downloadConfirm').addEventListener('click', () => downloadVideo());
 
     // Keyboard shortcuts
     const seekLeft = () => seekBy(-5), seekRight = () => seekBy(5);
     document.addEventListener('keydown', e => {
         if (e.target.tagName === 'TEXTAREA' || downloadModal.classList.contains('open')) return;
-        const actions = { Space: togglePlay, KeyK: togglePlay, ArrowLeft: seekLeft, KeyJ: seekLeft, ArrowRight: seekRight, KeyL: seekRight, KeyC: () => subtitles.length && $('ccBtn').click(), KeyT: insertTimestamp };
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const actions = { Space: togglePlay, KeyK: togglePlay, ArrowLeft: seekLeft, KeyJ: seekLeft, ArrowRight: seekRight, KeyL: seekRight, KeyC: () => subtitles.length && $('ccBtn').click(), KeyT: insertTimestamp, KeyF: toggleFullscreen };
         if (actions[e.code]) { e.preventDefault(); actions[e.code](); }
     });
 
-    // Panel resizer
-    const resizer = $('resizer'), feedbackPanel = document.querySelector('.feedback-panel');
+    // Dock the panel left / bottom / right via the header buttons; choice is remembered
+    const app = document.querySelector('.app'), resizer = $('resizer'), feedbackPanel = document.querySelector('.feedback-panel');
+    const setDock = dock => {
+        app.classList.toggle('dock-right', dock === 'right');
+        app.classList.toggle('dock-bottom', dock === 'bottom');
+        feedbackPanel.style[dock === 'bottom' ? 'width' : 'height'] = '';  // clear the size that no longer applies
+        document.querySelectorAll('.dock-btn').forEach(b => b.classList.toggle('active', b.dataset.dock === dock));
+        localStorage.setItem('feedbackDock', dock);
+    };
+    $('dockCtrl').addEventListener('click', e => { const b = e.target.closest('.dock-btn'); if (b) setDock(b.dataset.dock); });
+    setDock(localStorage.getItem('feedbackDock') || 'left');
+
+    // Resizer: width between columns, or height when docked at the bottom
     makeDraggable(resizer, e => {
-        const containerRect = document.querySelector('.container').getBoundingClientRect();
-        feedbackPanel.style.width = clamp(e.clientX - containerRect.left - 24, 200, 600) + 'px';
+        const r = app.getBoundingClientRect();
+        if (app.classList.contains('dock-bottom')) {
+            feedbackPanel.style.height = clamp(r.bottom - e.clientY - 12, 120, window.innerHeight * 0.6) + 'px';
+        } else {
+            const w = app.classList.contains('dock-right') ? r.right - e.clientX - 12 : e.clientX - r.left - 12;
+            feedbackPanel.style.width = clamp(w, 200, 600) + 'px';
+        }
     }, () => document.body.classList.remove('resizing'), 'active');
     resizer.addEventListener('mousedown', () => document.body.classList.add('resizing'));
+
+    // Night mode — remembered; falls back to the OS preference on first load
+    const applyTheme = night => {
+        document.body.classList.toggle('night', night);   // CSS swaps the moon/sun icon
+        localStorage.setItem('night', night ? '1' : '0');
+    };
+    const savedNight = localStorage.getItem('night');
+    applyTheme(savedNight === null ? matchMedia('(prefers-color-scheme: dark)').matches : savedNight === '1');
+    $('themeBtn').addEventListener('click', () => applyTheme(!document.body.classList.contains('night')));
 
     updateUI();
 }

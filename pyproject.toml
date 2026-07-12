@@ -1,0 +1,11 @@
+[project]
+name = "manim-skill"
+version = "1.0.0"
+description = "Coding-agent skill for creating Manim animations with local Kokoro voiceover"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "manim>=0.18",
+    "kokoro>=0.9.4",
+    "soundfile",
+]

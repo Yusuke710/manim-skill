@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Video Viewer - Local viewer for Manim videos with chapter navigation."""
 
-import argparse, http.server, json, os, re, shutil, socketserver, subprocess, sys, tempfile, threading, webbrowser
+import argparse, http.server, json, os, re, shutil, socketserver, subprocess, sys, threading, webbrowser
 from pathlib import Path
 from urllib.parse import unquote, urlparse, parse_qs
 
@@ -9,24 +9,18 @@ def get_duration(path):
     result = subprocess.run(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", path], capture_output=True, text=True)
     return float(json.loads(result.stdout).get("format", {}).get("duration", 0)) if result.returncode == 0 else 0.0
 
-def extract_thumb(video, output, time=1.0):
-    subprocess.run(["ffmpeg", "-y", "-ss", str(time), "-i", video, "-vframes", "1", "-q:v", "2", output], capture_output=True)
-
 def scene_name(path):
     return re.sub(r"_\d{4}x\d{4}$", "", Path(path).stem)
 
-def build_chapters(scenes, temp_dir):
+def build_chapters(scenes):
     chapters, t = [], 0.0
     for i, path in enumerate(scenes):
         dur = get_duration(path)
-        extract_thumb(path, f"{temp_dir}/thumb_{i}.jpg", dur * 0.25)
         chapters.append({"index": i, "name": scene_name(path), "start": t, "duration": dur})
         t += dur
     return chapters
 
 class Handler(http.server.SimpleHTTPRequestHandler):
-    progress = {"progress": 0, "message": ""}
-
     def __init__(self, *a, ctx=None, **kw):
         self.ctx = ctx
         super().__init__(*a, **kw)
@@ -41,17 +35,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "/video.mp4": lambda: self.send_file(self.ctx["video"], "video/mp4"),
             "/chapters.json": lambda: self.send_bytes(json.dumps(self.ctx["chapters"]).encode(), "application/json"),
             "/subtitles.srt": lambda: self.send_bytes(self.ctx.get("srt"), "text/plain"),
-            "/download": lambda: self.handle_download(query),
-            "/download/status": lambda: self.send_bytes(json.dumps(Handler.progress).encode(), "application/json"),
+            "/download": lambda: self.handle_download(),
             "/plan.md": lambda: self.send_bytes(self.ctx.get("plan"), "text/markdown"),
             "/cscript.py": lambda: self.send_bytes(self.ctx.get("script_content"), "text/x-python"),
         }
 
         if path in routes:
             routes[path]()
-        elif re.match(r"^/thumb_\d+\.jpg$", path):
-            thumb = f"{self.ctx['temp']}/{path[1:]}"
-            self.send_file(thumb, "image/jpeg") if os.path.exists(thumb) else self.send_error(404)
         else:
             self.send_error(404)
 
@@ -91,56 +81,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
-    def handle_download(self, query):
-        quality = query.get("quality", ["low"])[0]
-        video, name = self.ctx["video"], Path(self.ctx["video"]).stem
-
+    def handle_download(self):
+        video = self.ctx["video"]
+        name = Path(video).stem
         try:
-            if quality == "high" and self.ctx.get("script") and self.ctx.get("scenes"):
-                video = self.render_hq()
-                if not video: raise Exception("Render failed")
-                name = name.replace("_final", "_hq_final")
-
-            Handler.progress = {"progress": 95, "message": "Preparing..."}
-            size = os.path.getsize(video)
-
             self.send_response(200)
             self.send_header("Content-Type", "video/mp4")
             self.send_header("Content-Disposition", f'attachment; filename="{name}.mp4"')
             self.send_header("X-Filename", f"{name}.mp4")
-            self.send_header("Content-Length", size)
+            self.send_header("Content-Length", os.path.getsize(video))
             self.end_headers()
-
             with open(video, "rb") as f:
                 shutil.copyfileobj(f, self.wfile)
-            Handler.progress = {"progress": 100, "message": "Done!"}
         except Exception as e:
             print(f"Download error: {e}")
             self.send_error(500, str(e))
-
-    def render_hq(self):
-        hq_dir = f"{self.ctx['temp']}/hq"
-        os.makedirs(hq_dir, exist_ok=True)
-        script_name = Path(self.ctx["script"]).stem
-        videos = []
-
-        for i, scene in enumerate(self.ctx["scenes"]):
-            Handler.progress = {"progress": 10 + i * 60 // len(self.ctx["scenes"]), "message": f"Rendering {scene}..."}
-            result = subprocess.run(["manim", "-qh", "--media_dir", hq_dir, self.ctx["script"], scene], capture_output=True)
-            if result.returncode != 0: return None
-            vpath = f"{hq_dir}/videos/{script_name}/1080p60/{scene}.mp4"
-            if not os.path.exists(vpath): return None
-            videos.append(vpath)
-
-        Handler.progress = {"progress": 75, "message": "Stitching..."}
-        concat = f"{self.ctx['temp']}/concat.txt"
-        with open(concat, "w") as f:
-            f.writelines(f"file '{v}'\n" for v in videos)
-
-        out = f"{self.ctx['temp']}/hq_final.mp4"
-        if subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat, "-c", "copy", out], capture_output=True).returncode != 0:
-            return None
-        return out
 
     def log_message(self, *_): pass
 
@@ -210,27 +165,22 @@ def main():
     if not port:
         sys.exit("Error: No port available")
 
-    temp = tempfile.mkdtemp(prefix="viewer_")
+    print("Building chapters...")
+    chapters = build_chapters(scenes)
+    print(f"Found {len(chapters)} chapters")
+
+    ctx = {
+        "video": os.path.abspath(args.video),
+        "chapters": chapters,
+        "ui_html": Path(__file__).with_name("ui.html").read_text().encode(),
+        "srt": (Path(args.srt).read_bytes() if args.srt else concatenate_srts(scenes).encode()) or None,
+        "script_content": Path(args.script).read_text().encode() if args.script and os.path.exists(args.script) else None,
+        "plan": Path(args.plan).read_text().encode() if args.plan and os.path.exists(args.plan) else None,
+    }
+
+    handler = lambda *a, **kw: Handler(*a, ctx=ctx, **kw)
 
     try:
-        print("Building chapters...")
-        chapters = build_chapters(scenes, temp)
-        print(f"Found {len(chapters)} chapters")
-
-        ctx = {
-            "video": os.path.abspath(args.video),
-            "chapters": chapters,
-            "temp": temp,
-            "ui_html": Path(__file__).with_name("ui.html").read_text().encode(),
-            "srt": (Path(args.srt).read_bytes() if args.srt else concatenate_srts(scenes).encode()) or None,
-            "script": os.path.abspath(args.script) if args.script else None,
-            "script_content": Path(args.script).read_text().encode() if args.script and os.path.exists(args.script) else None,
-            "plan": Path(args.plan).read_text().encode() if args.plan and os.path.exists(args.plan) else None,
-            "scenes": [scene_name(s) for s in scenes]
-        }
-
-        handler = lambda *a, **kw: Handler(*a, ctx=ctx, **kw)
-
         with socketserver.TCPServer((args.host, port), handler) as srv:
             url = f"http://localhost:{port}"
             print(f"Viewer: {url}")
@@ -239,8 +189,6 @@ def main():
             srv.serve_forever()
     except KeyboardInterrupt:
         print("\nStopped")
-    finally:
-        shutil.rmtree(temp, ignore_errors=True)
 
 if __name__ == "__main__":
     main()
