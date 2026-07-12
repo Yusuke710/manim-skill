@@ -407,6 +407,26 @@ const getChapter = t => chapters.findLast(c => t >= c.start) || chapters[0];
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const seekBy = delta => { video.currentTime = clamp(video.currentTime + delta, 0, video.duration); ended = false; updateUI(); };
 
+// Map time <-> pixel through the segment elements so the dot, seeks, and
+// fills share one geometry. The chapter timeline (sum of per-scene durations)
+// can be shorter than video.duration when the muxed audio outlasts the video
+// track, and the flex gaps between segments are not duration-proportional.
+const segEl = i => document.querySelector(`.chapter-segment[data-i="${i}"]`);
+function timeToX(t) {
+    const ch = getChapter(t), seg = ch && segEl(ch.index);
+    if (!seg) return clamp(t / (video.duration || 1), 0, 1) * progressBar.offsetWidth;
+    return seg.offsetLeft + clamp((t - ch.start) / ch.duration, 0, 1) * seg.offsetWidth;
+}
+function xToTime(x) {
+    for (const c of chapters) {
+        const seg = segEl(c.index);
+        if (!seg) break;
+        if (x < seg.offsetLeft + seg.offsetWidth || c === chapters[chapters.length - 1])
+            return c.start + clamp((x - seg.offsetLeft) / seg.offsetWidth, 0, 1) * c.duration;
+    }
+    return clamp(x / progressBar.offsetWidth, 0, 1) * (video.duration || 0);
+}
+
 const setTabReady = tab => document.querySelector(`.content-tab[data-tab="${tab}"]`)?.classList.add('ready');
 
 // Unified drag handler
@@ -540,7 +560,7 @@ function updateUI() {
         const fill = document.querySelector(`.chapter-segment[data-i="${i}"] .chapter-segment-fill`);
         if (fill) fill.style.width = t >= c.start + c.duration ? '100%' : t > c.start ? `${(t - c.start) / c.duration * 100}%` : '0';
     });
-    els.progressDot.style.left = `calc(${t / d * 100}% - 6px)`;
+    els.progressDot.style.left = `${timeToX(t) - 6}px`;
 
     const sub = subtitlesOn && subtitles.find(s => t >= s.start && t < s.end);
     els.subtitleText.textContent = sub ? sub.text : '';
@@ -590,7 +610,7 @@ function showSeekFeedback(side) {
 }
 
 function seek(e) {
-    video.currentTime = clamp((e.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth, 0, 1) * video.duration;
+    video.currentTime = xToTime(e.clientX - progressBar.getBoundingClientRect().left);
     ended = false;
     updateUI();
 }
