@@ -6,14 +6,18 @@ Scenes run against a stub `manim` module that only tracks time, so a full
 video's script checks in well under a second. Reports:
 - overlapping subtitles (next one starts before the previous ends)
 - overflows (play/wait extends past the active subtitle's end)
+- subtitles extending beyond the scene's end
+
+This is a simulation, not a substitute for checking rendered audio/video sync.
+Incomplete simulations and scenes without subtitle coverage never pass.
 
 Usage: python lint-subtitles.py script.py
-Exit codes: 0 = clean, 1 = issues found, 2 = could not read/parse the script.
+Exit codes: 0 = clean, 1 = issues found, 2 = incomplete or invalid check.
 """
 
 import ast
 import builtins
-import keyword
+import math
 import os
 import sys
 import types
@@ -86,6 +90,10 @@ class DummyMobject(metaclass=DummyMeta):
     def __len__(self):
         return len(self._items)
 
+    def add(self, *items):
+        self._items.extend(items)
+        return self
+
     def __getitem__(self, key):
         if isinstance(key, int) and 0 <= key < len(self._items):
             item = self._items[key]
@@ -106,8 +114,6 @@ class DummyMobject(metaclass=DummyMeta):
     __mul__ = __rmul__ = __truediv__ = __rtruediv__ = lambda self, other: self._op(other)
     __neg__ = __pos__ = __abs__ = lambda self: DummyMobject()
     __lt__ = __le__ = __gt__ = __ge__ = lambda self, other: False  # False ends while-loops
-    __float__ = lambda self: 1.0
-    __int__ = __index__ = lambda self: 1
 
 
 def caller_line():
@@ -119,13 +125,20 @@ def caller_line():
 
 def resolve_duration(run_time, animations=()):
     if isinstance(run_time, (int, float)):
-        return max(0.0, float(run_time))
-    duration = 1.0
+        return checked_duration(run_time)
+    durations = []
     for anim in animations or ():
         candidate = getattr(anim, "run_time", None)
         if isinstance(candidate, (int, float)):
-            duration = max(duration, float(candidate))
-    return max(0.0, duration)
+            durations.append(checked_duration(candidate))
+    return max(durations, default=1.0)
+
+
+def checked_duration(value):
+    duration = float(value)
+    if not math.isfinite(duration) or duration < 0:
+        raise ValueError(f"Invalid timing duration: {value!r}")
+    return duration
 
 
 class Timeline:
@@ -139,12 +152,12 @@ class Timeline:
         self.overflows = []  # {sub, line, event, end}
         self._active = None  # subtitle currently covering the clock, if any
 
-    def subtitle(self, text, duration, line):
-        try:
-            dur = max(0.0, float(duration))
-        except (TypeError, ValueError):
-            dur = 1.0
-        sub = {"start": self.now, "end": self.now + dur,
+    def subtitle(self, text, duration, line, offset=0.0):
+        dur = checked_duration(duration)
+        start = self.now + float(offset)
+        if not math.isfinite(start) or start < -TOL:
+            raise ValueError(f"Invalid subtitle start: {start!r}")
+        sub = {"start": start, "end": start + dur,
                "text": str(text)[:50] if text else "<empty>", "line": line}
         if self.subs and self.subs[-1]["end"] > sub["start"] + TOL:
             self.overlaps.append((self.subs[-1], sub))
@@ -152,10 +165,7 @@ class Timeline:
         self._active = sub
 
     def advance(self, duration, line, event):
-        try:
-            step = max(0.0, float(duration))
-        except (TypeError, ValueError):
-            step = 0.0
+        step = checked_duration(duration)
         end = self.now + step
         active = self._active
         if active and self.now <= active["end"] + TOL < end:
@@ -174,7 +184,11 @@ class InstrumentedScene:
         self._mobjects = []
 
     def add_subcaption(self, content, duration=1.0, offset=0.0):
-        self.timeline.subtitle(content, duration, caller_line())
+        self.timeline.subtitle(content, duration, caller_line(), offset)
+
+    @property
+    def time(self):
+        return self.timeline.now
 
     def play(self, *anims, subcaption=None, subcaption_duration=None,
              run_time=None, **kwargs):
@@ -257,7 +271,6 @@ def collect_used_names(tree):
         node.id for node in ast.walk(tree)
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
         and not node.id.startswith("_")
-        and not keyword.iskeyword(node.id)
         and node.id not in builtin_names
         and node.id not in real_imports
     }
@@ -305,6 +318,7 @@ def simulate(filepath):
     for name, value in module_globals.items():
         if (isinstance(value, type) and issubclass(value, InstrumentedScene)
                 and value is not InstrumentedScene
+                and callable(getattr(value, "construct", None))
                 and all(value is not cls for _, cls in scene_classes)):
             scene_classes.append((name, value))
     if not scene_classes:
@@ -314,7 +328,10 @@ def simulate(filepath):
         timeline = Timeline(name)
         InstrumentedScene.timeline = timeline
         try:
-            cls().construct()
+            scene = cls()
+            scene.setup()
+            scene.construct()
+            scene.tear_down()
         except Exception as exc:
             warnings.append(f"Error in {name}.construct(): {exc}")
         timelines.append(timeline)
@@ -323,35 +340,32 @@ def simulate(filepath):
 
 
 def report(timelines, warnings):
+    issues = []
+    unchecked = [tl.scene for tl in timelines if not tl.subs]
+    for tl in timelines:
+        for previous, sub in tl.overlaps:
+            issues.append(f"{tl.scene}, line {sub['line']}: subtitle overlaps the previous one "
+                          f"by {previous['end'] - sub['start']:.3f}s")
+        for item in tl.overflows:
+            issues.append(f"{tl.scene}, line {item['line']}: animation exceeds subtitle "
+                          f"timing by {item['end'] - item['sub']['end']:.3f}s")
+        for sub in tl.subs:
+            if sub['end'] > tl.now + TOL:
+                issues.append(f"{tl.scene}, line {sub['line']}: subtitle ends "
+                              f"{sub['end'] - tl.now:.3f}s after the scene")
+    for issue in issues:
+        print(f"Timing issue: {issue}")
     for warning in warnings:
         print(f"Warning: {warning}", file=sys.stderr)
-
-    overlaps = [(tl.scene, prev, sub) for tl in timelines for prev, sub in tl.overlaps]
-    overflows = [(tl.scene, o) for tl in timelines for o in tl.overflows]
-
-    if not overlaps and not overflows:
-        total = sum(len(tl.subs) for tl in timelines)
-        print(f"No issues found ({total} subtitles in {len(timelines)} scenes)")
-        return 0
-
-    if overlaps:
-        print(f"Found {len(overlaps)} overlapping subtitle(s):\n")
-        for scene, prev, sub in overlaps:
-            print(f"  Scene: {scene}")
-            print(f'  Line {prev["line"]}: ends at {prev["end"]:.2f}s - "{prev["text"]}"')
-            print(f'  Line {sub["line"]}: starts at {sub["start"]:.2f}s - "{sub["text"]}"')
-            print(f"  Overlap: {prev['end'] - sub['start']:.2f}s\n")
-
-    if overflows:
-        print(f"Found {len(overflows)} subtitle timeline overflow(s):\n")
-        for scene, o in overflows:
-            print(f"  Scene: {scene}")
-            print(f"  Line {o['sub']['line']}: subtitle ends at {o['sub']['end']:.2f}s")
-            print(f"  Line {o['line']}: {o['event']} ends at {o['end']:.2f}s")
-            print(f"  Overflow: {o['end'] - o['sub']['end']:.2f}s\n")
-
-    print("Fix: adjust subtitle durations, play run_times, or waits so each segment stays covered.")
-    return 1
+    if warnings or unchecked or not timelines:
+        print(f"Check incomplete. Unchecked scenes: {', '.join(unchecked) or 'see warnings'}.",
+              file=sys.stderr)
+        return 2
+    if issues:
+        print("Fix scene timing against measured narration durations, then check again.")
+        return 1
+    print(f"No issues found ({sum(len(tl.subs) for tl in timelines)} subtitles in {len(timelines)} scenes)")
+    return 0
 
 
 def main():

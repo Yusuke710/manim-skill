@@ -7,8 +7,8 @@ You are a Manim animation expert. Create production-grade animations with Manim 
 
 ## Contract
 
-- Treat every prompt as an animation request. Never stop to ask the user to review a plan unless they explicitly asked for that. Continue until `video.mp4` exists; if blocked, return the exact blocker plainly.
-- Always output exactly `plan.md`, `script.py`, and `video.mp4` — never other names, regardless of aspect ratio or mode.
+- For animation requests, continue until `video.mp4` exists; if blocked, return the exact blocker plainly.
+- Deliver `script.py` and `video.mp4`. Do not create `plan.md` or a separate written scene plan unless the user explicitly requests one. Choose the visual design and scene structure directly in the animation code.
 
 ## Session Storage
 
@@ -16,7 +16,7 @@ You are a Manim animation expert. Create production-grade animations with Manim 
 
 ```
 SESSION_DIR = ${MANIM_SKILL_HOME:-~/.manim-skill}/<project-slug>/
-├── plan.md          # plan + SubtitleSpec
+├── narration.txt    # spoken lines only (when narrated)
 ├── voiceover.mp3    # concatenated TTS audio
 ├── timestamps.json  # per-subtitle timing
 ├── script.py        # Manim code
@@ -35,15 +35,13 @@ mkdir -p "$SESSION_DIR"
 cd "$SESSION_DIR"
 ```
 
-**Voiceover is on by default.** Skip TTS (Phases 2 and 5, subtitles, and `add_subcaption()`) only if the user asks for no TTS/narration/voiceover/captions, or the local `kokoro` package is not installed (then tell the user voiceover was skipped and that `uv add "kokoro>=0.9.4" soundfile` enables it).
+**Voiceover is on by default.** Skip narration, TTS, subtitle linting, muxing, and `add_subcaption()` only if the user asks for no TTS/narration/voiceover/captions, or the local `kokoro` package is not installed (then tell the user voiceover was skipped and that `uv add "kokoro>=0.9.4" soundfile` enables it).
 
-## Workflow: Plan → TTS → Code → Render → Mux → View
+## Workflow: Narration → TTS → Code → Render → Mux → View
 
-### Phase 1: Plan
+### Phase 1: Narration
 
-Write `plan.md`: title; overview (topic, hook, audience, estimated length, key insight, aspect ratio — 16:9 default); narrative arc; one section per scene (name, ~duration, purpose, visual elements, content); color palette. If the user already provided detailed requirements, record them in `plan.md` and move on.
-
-End `plan.md` with the SubtitleSpec — **this exact format is parsed by `tts-generate.py`** (omit the whole section when TTS is off, and don't use `add_subcaption()` in code). Kokoro speaks ≈2.5 words/second — size the lines to the target video length:
+When voiceover is enabled, write only the spoken lines in `narration.txt`, using the exact format below. Each entry becomes one TTS clip. Kokoro speaks ≈2.5 words/second — size the lines to the target video length. For silent videos, start with Code.
 
 ```
 subtitles:
@@ -55,12 +53,12 @@ subtitles:
 ### Phase 2: TTS
 
 ```
-python "<TOOLS_DIR>/tts-generate.py" --plan plan.md
+python "<TOOLS_DIR>/tts-generate.py" --narration narration.txt
 ```
 
 Local Kokoro voice `af_heart` by default; `--voice <name>` (e.g. `am_adam`, `bf_emma`) for another. Unchanged lines are served from `.tts-cache/`.
 
-Produces `voiceover.mp3` and `timestamps.json`. The run prints how many clips it found — confirm it matches your SubtitleSpec line count (a mismatch means the block didn't parse; fix the format in `plan.md`). **Read `timestamps.json` before writing code** — each `duration_s` is the exact time budget for that subtitle's segment.
+Produces `voiceover.mp3` and `timestamps.json`. The run prints how many clips it found — confirm it matches your narration line count (a mismatch means the block didn't parse; fix the format in `narration.txt`). **Read `timestamps.json` before writing code** — each `duration_s` is the exact time budget for that subtitle's segment.
 
 ### Phase 3: Code
 
@@ -72,7 +70,7 @@ Write `script.py`:
    - `9:16` → 480×854, frame 9×16, 15 fps
    - `1:1` → 480×480, frame 8×8, 15 fps
    Keep the pixel and frame aspect ratios matched.
-3. **Each SubtitleSpec line becomes exactly one `self.add_subcaption(text, duration=duration_s)` call — same text, same order** (a scene may hold several consecutive segments). Never burn subtitles in as text mobjects: `add_subcaption()` emits the per-scene `.srt` files the linter and viewer depend on. Inline each `duration_s` from `timestamps.json` as a literal, set explicit `run_time=` on every `play()`, keep total scheduled time (including `wait()` and `move_camera()`) within the budget, and end each segment with `self.wait(max(0, dur - used))`.
+3. **Each narration line becomes exactly one `self.add_subcaption(text, duration=duration_s)` call — same text, same order** (a scene may hold several consecutive segments). Never burn subtitles in as text mobjects: `add_subcaption()` emits the per-scene `.srt` files the viewer uses; the linter simulates the calls in `script.py`. Inline each `duration_s` from `timestamps.json` as a literal, set explicit `run_time=` on every `play()`, keep total scheduled time (including `wait()` and `move_camera()`) within the budget, and end each segment with `self.wait(max(0, dur - used))`.
 4. **`MathTex(...)` for formulas; prefer `Tex(...)` over `Text(...)` for prose** (Pango can produce odd letter spacing).
 
 ```python
@@ -91,7 +89,7 @@ class Scene1_Introduction(Scene):
 
 ### Phase 4: Render
 
-Lint first — render only when it passes:
+For narrated videos, lint first — render only when it passes. Exit code 1 means timing issues; 2 means the simulation was incomplete or invalid. Fix the cause before rendering. Skip this check for silent videos:
 
 ```
 python "<TOOLS_DIR>/lint-subtitles.py" script.py
@@ -123,12 +121,14 @@ ffmpeg -y -i video_silent.mp4 -i voiceover.mp3 \
   -movflags +faststart video.mp4
 ```
 
+Verify `video.mp4` with `ffprobe`, inspect representative frames for readability and layout, and check rendered audio/video sync when narrated. The linter is a simulation, not a substitute for these checks.
+
 ### Phase 6: View & Feedback
 
 Launch the viewer from `SESSION_DIR`, in the background:
 
 ```
-python3 <TOOLS_DIR>/video_viewer.py video.mp4 --order concat.txt --script script.py --plan plan.md
+python3 <TOOLS_DIR>/video_viewer.py video.mp4 --order concat.txt --script script.py
 ```
 
 It prints `VIDEO_READY http://localhost:<port>` and opens the browser. Tell the user the URL and the `SESSION_DIR` path.
@@ -137,6 +137,6 @@ The viewer's Capture button (`T`) drops timestamped lines into the feedback pane
 
 Then iterate:
 
-1. If voiceover lines changed: edit the SubtitleSpec, re-run Phase 2 (unchanged lines are cache hits; `python "<TOOLS_DIR>/tts-generate.py" --bust <index or text fragment>` force-regenerates one clip), and update `script.py` to the new `timestamps.json`.
-2. Fix the named scenes, lint, re-render **only the affected scenes**, re-mux.
+1. If voiceover lines changed: edit `narration.txt`, re-run Phase 2 (unchanged lines are cache hits; `python "<TOOLS_DIR>/tts-generate.py" --bust <index or text fragment>` force-regenerates one clip), and update `script.py` to the new `timestamps.json`.
+2. Fix the named scenes, lint when narrated, re-render **only the affected scenes**, re-mux.
 3. The viewer serves the new `video.mp4` on reload; restart it only if it was stopped.

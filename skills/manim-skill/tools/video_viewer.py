@@ -36,7 +36,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "/chapters.json": lambda: self.send_bytes(json.dumps(self.ctx["chapters"]).encode(), "application/json"),
             "/subtitles.srt": lambda: self.send_bytes(self.ctx.get("srt"), "text/plain"),
             "/download": lambda: self.handle_download(),
-            "/plan.md": lambda: self.send_bytes(self.ctx.get("plan"), "text/markdown"),
             "/cscript.py": lambda: self.send_bytes(self.ctx.get("script_content"), "text/x-python"),
         }
 
@@ -149,7 +148,6 @@ def main():
     p.add_argument("--host", default="127.0.0.1", help="Host to bind (default: 127.0.0.1)")
     p.add_argument("--srt")
     p.add_argument("--script")
-    p.add_argument("--plan", help="plan.md file path")
     args = p.parse_args()
 
     if not os.path.exists(args.video):
@@ -175,7 +173,6 @@ def main():
         "ui_html": Path(__file__).with_name("ui.html").read_text().encode(),
         "srt": (Path(args.srt).read_bytes() if args.srt else concatenate_srts(scenes).encode()) or None,
         "script_content": Path(args.script).read_text().encode() if args.script and os.path.exists(args.script) else None,
-        "plan": Path(args.plan).read_text().encode() if args.plan and os.path.exists(args.plan) else None,
     }
 
     handler = lambda *a, **kw: Handler(*a, ctx=ctx, **kw)

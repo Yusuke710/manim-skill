@@ -2,13 +2,13 @@
 """
 TTS generator for the Manim voiceover pipeline (Kokoro, local).
 
-Reads the SubtitleSpec from plan.md, synthesizes one MP3 per subtitle with
+Reads the SubtitleSpec from narration.txt, synthesizes one MP3 per subtitle with
 Kokoro, measures exact durations with ffprobe, concatenates them into
 voiceover.mp3, and writes per-subtitle timings to timestamps.json.
 
-    python tts-generate.py --plan plan.md            # default voice af_heart
-    python tts-generate.py --plan plan.md --voice am_adam
-    python tts-generate.py --plan plan.md --bust 2   # drop one cached clip, then exit
+    python tts-generate.py --narration narration.txt            # default voice af_heart
+    python tts-generate.py --narration narration.txt --voice am_adam
+    python tts-generate.py --narration narration.txt --bust 2   # drop one cached clip, then exit
 
 Per-line audio is cached in .tts-cache/, so re-runs only regenerate changed
 lines. The Kokoro model is loaded once per run (in-process); if every line is a
@@ -41,21 +41,21 @@ def cache_path(text: str, voice_id: str, cache_dir: Path = CACHE_DIR) -> Path:
     return cache_dir / f"{key}.mp3"
 
 
-def parse_subtitles(plan_path: str) -> list[str]:
+def parse_subtitles(narration_path: str) -> list[str]:
     """
-    Parse the SubtitleSpec from plan.md: lines prefixed with `- ` under a
+    Parse the SubtitleSpec from narration.txt: lines prefixed with `- ` under a
     `subtitles:` heading (inside or outside a fenced code block).
     """
-    text = Path(plan_path).read_text()
+    text = Path(narration_path).read_text()
     stripped = re.sub(r"```[^\n]*\n", "", text).replace("```", "")
     match = re.search(r"^subtitles:\s*\n(.*?)(?=\n[^\s\-\n]|\Z)", stripped, re.MULTILINE | re.DOTALL)
     if not match:
-        sys.exit(f"Error: No 'subtitles:' block found in {plan_path}")
+        sys.exit(f"Error: No 'subtitles:' block found in {narration_path}")
     items = [re.sub(r"^[ \t]*-\s*", "", line).strip()
              for line in match.group(1).splitlines()
              if re.match(r"^[ \t]*-", line)]
     if not items:
-        sys.exit("Error: Empty subtitles list in plan.md")
+        sys.exit("Error: Empty subtitles list in narration.txt")
     return items
 
 
@@ -132,17 +132,21 @@ def ffprobe_duration(mp3_path: str) -> float:
 
 
 def concat_mp3s(parts: list[str], out_path: str) -> None:
-    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
-        for p in parts:
-            f.write(f"file '{os.path.abspath(p)}'\n")
-        list_file = f.name
-    try:
-        subprocess.run(
-            ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_file, "-c", "copy", out_path],
-            check=True, capture_output=True,
-        )
-    finally:
-        os.unlink(list_file)
+    # Stream-copying MP3 packets accumulates encoder padding at every join.
+    # Decode first, preserve each measured timing budget, and encode only once.
+    inputs = [arg for part in parts for arg in ("-i", part)]
+    filters = [
+        f"[{i}:a]apad,atrim=duration={ffprobe_duration(part):.9f},"
+        f"asetpts=PTS-STARTPTS[a{i}]"
+        for i, part in enumerate(parts)
+    ]
+    filters.append("".join(f"[a{i}]" for i in range(len(parts)))
+                   + f"concat=n={len(parts)}:v=0:a=1[audio]")
+    subprocess.run(
+        ["ffmpeg", "-y", *inputs, "-filter_complex", ";".join(filters),
+         "-map", "[audio]", "-codec:a", "libmp3lame", "-q:a", "2", out_path],
+        check=True, capture_output=True,
+    )
 
 
 def bust_cache(subtitles: list[str], target_arg: str, voice_id: str) -> None:
@@ -162,8 +166,9 @@ def bust_cache(subtitles: list[str], target_arg: str, voice_id: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate Kokoro TTS voiceover from plan.md SubtitleSpec")
-    parser.add_argument("--plan", default="plan.md")
+    parser = argparse.ArgumentParser(description="Generate Kokoro TTS voiceover from narration.txt SubtitleSpec")
+    parser.add_argument("--narration", "--plan", dest="narration", default="narration.txt",
+                        help="Spoken-line input (default: narration.txt; --plan is a compatibility alias)")
     parser.add_argument("--voice", default=DEFAULT_VOICE, help="Kokoro voice name (default: af_heart)")
     parser.add_argument("--out-audio", default="voiceover.mp3")
     parser.add_argument("--out-timestamps", default="timestamps.json")
@@ -172,7 +177,7 @@ def main() -> None:
     args = parser.parse_args()
 
     voice_id = args.voice
-    subtitles = parse_subtitles(args.plan)
+    subtitles = parse_subtitles(args.narration)
 
     if args.bust is not None:
         bust_cache(subtitles, args.bust, voice_id)
