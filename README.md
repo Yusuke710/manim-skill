@@ -41,7 +41,7 @@ in the animation code, without creating a separate plan document.
    copy it into Claude Code, and Claude refines the video based on your notes.
    The same workflow works with Codex.
 
-   ![Video viewer showing an attention heatmap, a Notes panel, and Capture and Copy controls](skills/manim-skill/tools/video_viewer.png)
+   ![Video viewer showing how Capture adds a timestamp and scene name to Notes, with an annotated arrow](skills/manim-skill/tools/video_viewer.png)
 
    Watch the video and pause at a moment you want to discuss. Click **Capture**
    or press **t** to add the current timestamp and scene name to **Notes**.
